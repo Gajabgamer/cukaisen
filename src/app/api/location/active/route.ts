@@ -33,4 +33,5 @@ export async function GET(request: NextRequest) {
     }
 }
 
-export const runtime = 'edge'
+// Node runtime: a shared Neon Pool hangs across Edge invocations
+export const runtime = 'nodejs'

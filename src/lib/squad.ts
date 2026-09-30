@@ -113,6 +113,7 @@ export function useSquad(getGuidePos: () => Pos | null, getMapCentre: () => Pos 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ latitude: pos!.lat, longitude: pos!.lng, squadCode, durationMinutes: minutes }),
+                signal: AbortSignal.timeout(15000),
             })
             if (res.status === 401) { setNeedsLogin(true); return false }
             const data = await res.json().catch(() => ({}))
@@ -128,7 +129,8 @@ export function useSquad(getGuidePos: () => Pos | null, getMapCentre: () => Pos 
             if (url.searchParams.has('squad')) { url.searchParams.delete('squad'); window.history.replaceState(null, '', url.toString()) }
             return true
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'Could not start sharing')
+            const timedOut = e instanceof DOMException && (e.name === 'TimeoutError' || e.name === 'AbortError')
+            setError(timedOut ? 'Server took too long. Tap again.' : e instanceof Error ? e.message : 'Could not start sharing')
             return false
         } finally {
             setBusy(false)
@@ -169,10 +171,11 @@ export function useSquad(getGuidePos: () => Pos | null, getMapCentre: () => Pos 
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ latitude: pos.lat, longitude: pos.lng, squadCode: code, update: true }),
+                        signal: AbortSignal.timeout(10000),
                     })
                     if (up.status === 410 || up.status === 401) { if (!stopped) { clearLocal(); if (up.status === 401) setNeedsLogin(true) } return }
                 }
-                const res = await fetch(`/api/location/active?squad=${code}`, { cache: 'no-store' })
+                const res = await fetch(`/api/location/active?squad=${code}`, { cache: 'no-store', signal: AbortSignal.timeout(10000) })
                 if (!res.ok || stopped) return
                 const data = await res.json()
                 setMe(data.me)
