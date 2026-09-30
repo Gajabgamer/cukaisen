@@ -54,8 +54,8 @@ export default function AuthShell({ character, aura = 'aura-blue', kanji, title,
                     className="w-full max-w-md"
                 >
                     <Link href="/" className="mb-8 flex items-center gap-3">
-                        <span className="jjk-font neon-red text-4xl">呪</span>
-                        <span className="jjk-font text-2xl tracking-widest">THE VEIL</span>
+                        <img src="/logo.svg" alt="" className="h-11 w-11" />
+                        <span className="jjk-font text-2xl tracking-widest">CUKAISEN</span>
                     </Link>
 
                     <h1 className="jjk-font neon-cyan text-5xl leading-none md:text-6xl">{title}</h1>

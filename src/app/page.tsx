@@ -98,8 +98,8 @@ export default function Home() {
       <nav className="fixed inset-x-0 top-0 z-50 flex items-center justify-between px-5 py-4 md:px-10"
         style={{ background: 'linear-gradient(to bottom, rgba(5,3,10,0.9), transparent)' }}>
         <Link href="/" className="flex items-center gap-3">
-          <span className="jjk-font neon-red text-3xl">呪</span>
-          <span className="jjk-font text-xl tracking-widest">THE VEIL</span>
+          <img src="/logo.svg" alt="" className="h-9 w-9" />
+          <span className="jjk-font text-xl tracking-widest">CUKAISEN</span>
         </Link>
         <div className="hidden items-center gap-8 text-xs font-bold tracking-[0.25em] md:flex">
           <a href="#mission" className="hover:text-cyan-300">MISSION</a>
@@ -355,7 +355,7 @@ export default function Home() {
       </section>
 
       <footer className="border-t border-white/10 px-6 py-8 text-center text-[11px] tracking-widest text-white/40">
-        THE VEIL // NEXASOUL BUILDSPRINT 2026 // MISSION 01 · Fan-made tribute, non-commercial. Jujutsu Kaisen © Gege Akutami / Shueisha / MAPPA.
+        CUKAISEN // THE VEIL // NEXASOUL BUILDSPRINT 2026 // MISSION 01 · Fan-made tribute, non-commercial. Jujutsu Kaisen © Gege Akutami / Shueisha / MAPPA.
       </footer>
 
       {/* ── DOMAIN EXPANSION OVERLAY ── */}

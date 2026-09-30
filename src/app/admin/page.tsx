@@ -49,7 +49,7 @@ export default function AdminDashboard() {
             {/* Header */}
             <div className="mb-8">
                 <h1 className="cn-display text-3xl font-bold" style={{ color: 'var(--cn-text-1)' }}>Admin Dashboard</h1>
-                <p className="mt-1" style={{ color: 'var(--cn-text-3)' }}>De-tect — Chandigarh University</p>
+                <p className="mt-1" style={{ color: 'var(--cn-text-3)' }}>CUKAISEN — Chandigarh University</p>
             </div>
 
             {/* Stats grid */}

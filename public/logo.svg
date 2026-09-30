@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CUKAISEN">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#140a26"/>
+      <stop offset="1" stop-color="#06030c"/>
+    </linearGradient>
+    <linearGradient id="veil" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#5ff5ff"/>
+      <stop offset="0.55" stop-color="#a855f7"/>
+      <stop offset="1" stop-color="#ff1f4b"/>
+    </linearGradient>
+    <linearGradient id="pin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff6b8a"/>
+      <stop offset="1" stop-color="#ff1f4b"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <!-- The Veil: an open C-shaped barrier around campus -->
+  <path d="M362 150 A150 150 0 1 0 362 362" fill="none" stroke="url(#veil)" stroke-width="44" stroke-linecap="round" filter="url(#glow)"/>
+  <!-- The destination pin inside the Veil -->
+  <path d="M256 330 C232 296 202 270 202 236 A54 54 0 1 1 310 236 C310 270 280 296 256 330 Z" fill="url(#pin)" filter="url(#glow)"/>
+  <circle cx="256" cy="236" r="19" fill="#0b0614"/>
+</svg>

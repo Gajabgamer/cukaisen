@@ -109,10 +109,10 @@ export default function Header() {
                     <Link href="/map" className="flex items-center gap-2.5 group">
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg overflow-hidden bg-white"
                             style={{ boxShadow: 'var(--cn-shadow-glow-purple)' }}>
-                            <img src="/logo.png" alt="De-tect Logo" className="w-full h-full object-cover" />
+                            <img src="/logo.svg" alt="CUKAISEN Logo" className="w-full h-full object-cover" />
                         </div>
                         <span className="font-bold text-base text-white group-hover:text-purple-300 transition-colors">
-                            De-tect
+                            CUKAISEN
                         </span>
                     </Link>
 

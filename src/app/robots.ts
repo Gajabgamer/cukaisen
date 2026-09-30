@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/api/', '/admin/'],
     },
-    sitemap: 'https://campusnav.example.com/sitemap.xml',
+    sitemap: 'https://cukaisen.vercel.app/sitemap.xml',
   }
 }

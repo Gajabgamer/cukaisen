@@ -33,10 +33,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Link href="/map" className="flex items-center gap-3 group">
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg overflow-hidden bg-white"
                             style={{ boxShadow: 'var(--cn-shadow-glow-purple)' }}>
-                            <img src="/logo.png" alt="De-tect Logo" className="w-full h-full object-cover" />
+                            <img src="/logo.svg" alt="CUKAISEN Logo" className="w-full h-full object-cover" />
                         </div>
                         <div>
-                            <p className="font-bold text-sm leading-tight group-hover:text-[var(--cn-accent-purple)] transition-colors" style={{ color: 'var(--cn-text-1)' }}>De-tect</p>
+                            <p className="font-bold text-sm leading-tight group-hover:text-[var(--cn-accent-purple)] transition-colors" style={{ color: 'var(--cn-text-1)' }}>CUKAISEN</p>
                             <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--cn-accent-admin)' }}>Admin Panel</p>
                         </div>
                     </Link>

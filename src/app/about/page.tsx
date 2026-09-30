@@ -88,10 +88,10 @@ export default function AboutPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                         <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base overflow-hidden bg-white" style={{ boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }}>
-                            <img src="/logo.png" alt="De-tect Logo" className="w-full h-full object-cover" />
+                            <img src="/logo.svg" alt="CUKAISEN Logo" className="w-full h-full object-cover" />
                         </div>
                         <div className="hidden sm:block">
-                            <p className="font-bold text-sm leading-none" style={{ color: s.text1 }}>De-tect</p>
+                            <p className="font-bold text-sm leading-none" style={{ color: s.text1 }}>CUKAISEN</p>
                             <p className="text-[10px]" style={{ color: '#6366f1' }}>About & Feedback</p>
                         </div>
                     </Link>
@@ -129,7 +129,7 @@ export default function AboutPage() {
                         onClick={() => {
                             const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
                             if (isStandalone) {
-                                alert("You are already using the De-tect app! 🎉");
+                                alert("You are already using the CUKAISEN app! 🎉");
                                 return;
                             }
 
@@ -242,7 +242,7 @@ export default function AboutPage() {
                                 <h2 className="text-base sm:text-lg font-bold" style={{ color: s.text1 }}>Our Mission</h2>
                             </div>
                             <p className="text-sm leading-relaxed mb-5" style={{ color: s.text2 }}>
-                                We built De-tect to solve a real problem — newcomers and even seasoned students often struggle to find specific labs, cafeterias and offices across the vast CU campus. With 3D buildings, turn-by-turn walking navigation and a community-driven places database, every campus journey is stress-free.
+                                We built CUKAISEN to solve a real problem — newcomers and even seasoned students often struggle to find specific labs, cafeterias and offices across the vast CU campus. With 3D buildings, turn-by-turn walking navigation and a community-driven places database, every campus journey is stress-free.
                             </p>
                             <div className="grid grid-cols-3 gap-2">
                                 {FEATURES.map(f => (
@@ -297,7 +297,7 @@ export default function AboutPage() {
                                     <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">💬</div>
                                     <div>
                                         <h2 className="text-lg font-bold text-white">Share Your Feedback</h2>
-                                        <p className="text-white/70 text-xs mt-0.5">Help us improve De-tect for everyone</p>
+                                        <p className="text-white/70 text-xs mt-0.5">Help us improve CUKAISEN for everyone</p>
                                     </div>
                                 </div>
                             </div>

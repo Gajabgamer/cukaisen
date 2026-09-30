@@ -71,9 +71,9 @@ export default function ProfilePage() {
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
                     <Link href="/map" className="flex items-center gap-2 group">
                         <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base overflow-hidden bg-white shadow-sm flex-shrink-0" style={{ boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }}>
-                            <img src="/logo.png" alt="De-tect Logo" className="w-full h-full object-cover" />
+                            <img src="/logo.svg" alt="CUKAISEN Logo" className="w-full h-full object-cover" />
                         </div>
-                        <span className="font-bold text-sm" style={{ color: 'var(--cn-text-1)' }}>De-tect</span>
+                        <span className="font-bold text-sm" style={{ color: 'var(--cn-text-1)' }}>CUKAISEN</span>
                     </Link>
                     <div className="flex items-center gap-2">
                         <Link href="/map" className="hidden sm:flex items-center gap-1 px-3 py-2 rounded-full text-xs font-semibold transition-all hover:opacity-80" style={{ background: 'var(--cn-toggle-bg)', color: 'var(--cn-text-2)' }}>
