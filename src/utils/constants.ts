@@ -55,7 +55,7 @@ export const MAP_CONFIG = {
 
 // Live Location Configuration
 export const LIVE_LOCATION_CONFIG = {
-    maxDurationMinutes: 60, // Maximum share duration
+    maxDurationMinutes: 120, // Maximum share duration
     defaultDurationMinutes: 15,
     updateIntervalMs: 5000 // 5 seconds
 } as const

@@ -2,7 +2,24 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useTheme } from '@/lib/useTheme'
+import GlitchText from '@/components/shared/GlitchText'
+import CursedArtifactSlot from '@/components/shared/CursedArtifactSlot'
+import { pickMentorLine } from '@/lib/lore/mentorCopy'
+
+const STAGES = [
+    { label: 'Sense', microcopy: 'Sense the cursed territories around you.', icon: '👁️' },
+    { label: 'Traverse', microcopy: "Traverse the path — the veil won't hold forever.", icon: '🥾' },
+    { label: 'Reclaim', microcopy: 'Reclaim this territory for the campus.', icon: '🔮' },
+] as const
+
+const FIELD_NOTES = [
+    {
+        caption: 'We discovered new students couldn\'t find the health center during orientation week → therefore we built real-time category search.',
+    },
+    {
+        caption: 'We discovered campus parking fills up fastest near the exam halls → therefore we built live parking availability.',
+    },
+] as const
 
 const TEAM = [
     { name: 'Campus Nav Team', role: 'Full Stack Development', emoji: '🧑‍💻', description: 'Building a smarter way to navigate Chandigarh University campus.' },
@@ -28,7 +45,6 @@ const FEATURES = [
 const RATING_LABELS = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent!']
 
 export default function AboutPage() {
-    const { toggleTheme, isDark, mounted } = useTheme()
     const [form, setForm] = useState({ name: '', email: '', message: '', rating: 5 })
     const [submitting, setSubmitting] = useState(false)
     const [submitted, setSubmitted] = useState(false)
@@ -80,13 +96,6 @@ export default function AboutPage() {
                         </div>
                     </Link>
                     <div className="flex items-center gap-2">
-                        {mounted && (
-                            <button onClick={toggleTheme} title="Toggle theme"
-                                className="w-9 h-9 rounded-full flex items-center justify-center text-base transition-all hover:scale-110"
-                                style={{ background: 'var(--cn-toggle-bg)' }}>
-                                {isDark ? '☀️' : '🌙'}
-                            </button>
-                        )}
                         <Link href="/map" className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-semibold text-white transition-all hover:opacity-90"
                             style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
                             🗺️ <span>Map</span>
@@ -95,17 +104,28 @@ export default function AboutPage() {
                 </div>
             </nav>
 
-            {/* ── HERO BANNER ── */}
-            <div style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 60%, #a78bfa 100%)' }}>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14 text-center">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-4 bg-white/20 text-white">✨ Chandigarh University</div>
-                    <h1 className="text-3xl sm:text-5xl font-extrabold text-white mb-3 leading-tight">
-                        About De-tect
-                    </h1>
-                    <p className="text-white/80 text-sm sm:text-base max-w-xl mx-auto leading-relaxed mb-6">
-                        A real-time 3D campus map helping students, visitors and staff find any place instantly.
+            {/* ── HERO — "THE VEIL" lore hero with CursedArtifactSlot backdrop ── */}
+            <section className="relative flex min-h-[60vh] w-full items-center justify-center overflow-hidden">
+                <div className="absolute inset-0">
+                    <CursedArtifactSlot variant="hero" alt="THE VEIL — cursed campus backdrop" />
+                </div>
+                <div
+                    className="absolute inset-0"
+                    style={{ background: 'linear-gradient(to bottom, rgba(10,7,19,0.35), var(--cn-bg))' }}
+                    aria-hidden="true"
+                />
+                <div className="relative z-10 flex flex-col items-center gap-5 px-6 text-center py-16">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold" style={{ background: s.surface2, border: `1px solid ${s.border}`, color: s.text2 }}>
+                        ✨ Jujutsu Tech — Kyoto Annex
+                    </div>
+                    <GlitchText as="h1" className="cn-display text-4xl sm:text-6xl tracking-widest">
+                        THE VEIL
+                    </GlitchText>
+                    <p className="max-w-xl text-sm sm:text-base" style={{ color: s.text2 }}>
+                        A cursed mist swept the campus, scrambling every ward and severing the old navigation grid.
+                        This is the fieldwork behind restoring it — one territory at a time.
                     </p>
-                    <button 
+                    <button
                         onClick={() => {
                             const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
                             if (isStandalone) {
@@ -130,12 +150,83 @@ export default function AboutPage() {
                                 }
                             }
                         }}
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-indigo-600 bg-white hover:bg-indigo-50 transition-all shadow-lg active:scale-95"
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold transition-all hover:scale-105 active:scale-95"
+                        style={{ background: 'var(--cn-accent-purple)', color: '#fff', boxShadow: 'var(--cn-shadow-glow-purple)' }}
                     >
                         <span>📱</span> Download App
                     </button>
                 </div>
-            </div>
+            </section>
+
+            {/* ── THE INCIDENT ── */}
+            <section className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+                <div className="rounded-2xl p-6 sm:p-8" style={{ background: s.surface, border: `1px solid ${s.border}` }}>
+                    <h2 className="cn-display text-xl sm:text-2xl font-bold mb-4" style={{ color: s.text1 }}>The Incident</h2>
+                    <p className="text-sm leading-relaxed mb-3" style={{ color: s.text2 }}>
+                        THE VEIL is the cursed mist event that swept Jujutsu Tech&mdash;Kyoto Annex, scrambling every
+                        ward and severing the old navigation grid overnight. Buildings that once had clear routes
+                        became uncharted territory. Wards that guided students to the cafeteria, the library, the
+                        parking gates &mdash; all gone dark at once.
+                    </p>
+                    <p className="text-sm leading-relaxed" style={{ color: s.text2 }}>
+                        Restoring navigation isn&apos;t a UI feature here &mdash; it&apos;s fieldwork. Every place you
+                        find, every route you walk, is a small act of reclaiming the campus from the mist.
+                    </p>
+                </div>
+            </section>
+
+            {/* ── YOUR ROLE: SENSE → TRAVERSE → RECLAIM ── */}
+            <section className="max-w-4xl mx-auto px-4 sm:px-6 py-2">
+                <h2 className="cn-display text-xl sm:text-2xl font-bold mb-4 text-center" style={{ color: s.text1 }}>Your Role</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+                    {STAGES.map(stage => (
+                        <div key={stage.label} className="rounded-2xl flex flex-col items-center gap-2 px-5 py-6 text-center" style={{ background: s.surface, border: `1px solid ${s.border}` }}>
+                            <span className="text-2xl" aria-hidden="true">{stage.icon}</span>
+                            <h3 className="cn-display text-base font-semibold tracking-wide" style={{ color: '#8b5cf6' }}>{stage.label}</h3>
+                            <p className="text-xs" style={{ color: s.text3 }}>{stage.microcopy}</p>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* ── MEET YOUR SENSEI ── */}
+            <section className="max-w-4xl mx-auto px-4 sm:px-6 py-2">
+                <div className="rounded-2xl p-6 sm:p-8 mb-10" style={{ background: s.surface, border: `1px solid ${s.border}` }}>
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}>🕶️</div>
+                        <h2 className="cn-display text-lg sm:text-xl font-bold" style={{ color: s.text1 }}>Meet Your Sensei</h2>
+                    </div>
+                    <p className="text-sm leading-relaxed mb-3" style={{ color: s.text2 }}>
+                        A Special Grade sorcerer, post-Shibuya, technique sealed. Still sharp-tongued and effortlessly
+                        confident &mdash; but operating without the power that once defined him, relying on
+                        experience and dry wit instead. Referred to only as &quot;the Sensei.&quot;
+                    </p>
+                    <p className="text-sm italic" style={{ color: s.text3 }} data-testid="about-onboarding-mentor-line">
+                        &ldquo;{pickMentorLine('onboarding')}&rdquo;
+                    </p>
+                </div>
+            </section>
+
+            {/* ── FIELD NOTES (Cursed Artifact Mandate gallery) ── */}
+            <section className="max-w-4xl mx-auto px-4 sm:px-6 py-2">
+                <h2 className="cn-display text-xl sm:text-2xl font-bold mb-4 text-center" style={{ color: s.text1 }}>Field Notes</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+                    {FIELD_NOTES.map((note, i) => (
+                        <div key={i} className="rounded-2xl overflow-hidden" style={{ background: s.surface, border: `1px solid ${s.border}` }}>
+                            <div className="relative h-40">
+                                <CursedArtifactSlot
+                                    variant="gallery"
+                                    alt={`Field note ${i + 1}`}
+                                    caption={note.caption}
+                                />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                {/* PITCH COPY TEMPLATE — fill before demo day:
+                    "We discovered <real observation about the campus> →
+                     therefore we built <specific CampusPath feature>." */}
+            </section>
 
             {/* ── MAIN TWO-COLUMN ── */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
@@ -199,7 +290,7 @@ export default function AboutPage() {
 
                     {/* ── RIGHT: Feedback Form (sticky on desktop) ── */}
                     <div className="lg:sticky lg:top-20">
-                        <div id="feedback" className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${s.border}`, boxShadow: isDark ? '0 8px 40px rgba(0,0,0,0.4)' : '0 8px 40px rgba(0,0,0,0.08)' }}>
+                        <div id="feedback" className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${s.border}`, boxShadow: '0 8px 40px rgba(0,0,0,0.4)' }}>
                             {/* Header */}
                             <div className="px-5 sm:px-8 py-5" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
                                 <div className="flex items-center gap-3">
@@ -280,6 +371,16 @@ export default function AboutPage() {
                         <div className="mt-6 text-center">
                             <p className="text-xs" style={{ color: s.text3 }}>Made with ❤️ for Chandigarh University</p>
                             <Link href="/map" className="inline-block mt-2 text-xs font-semibold transition-colors hover:opacity-80" style={{ color: '#6366f1' }}>← Back to Campus Map</Link>
+                        </div>
+
+                        {/* ── CREDITS / NON-CANON DISCLAIMER ── */}
+                        <div className="mt-8 text-center px-4">
+                            <p className="text-[10px] leading-relaxed" style={{ color: s.text3, opacity: 0.6 }}>
+                                &quot;THE VEIL&quot; theme is an original, non-commercial fan-work reskin created for a hackathon
+                                submission. It is inspired by Jujutsu Kaisen but does not use any copyrighted character
+                                names, artwork, video, or audio assets. All lore, copy, and visual effects on this page are
+                                original works built for NexaSoul BuildSprint 2026.
+                            </p>
                         </div>
                     </div>
                 </div>

@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Reference repos are study material only, not part of this project.
+    "references/**",
+    // Legacy/binary script, not part of the app build.
+    "script.ts",
   ]),
 ]);
 

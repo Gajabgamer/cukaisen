@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { MotionPrefsProvider } from "@/lib/motionPrefs";
 import "./globals.css";
+import CursedThemeInit from "@/components/shared/CursedThemeInit";
+import VeilLoader from "@/components/veil/VeilLoader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -73,7 +76,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <MotionPrefsProvider>
+          <CursedThemeInit />
+          <VeilLoader />
+          {children}
+        </MotionPrefsProvider>
       </body>
     </html>
   );

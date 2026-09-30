@@ -279,15 +279,15 @@ export default function CustomCampusMap({ onBuildingClick, selectedBuilding, sea
     return (
         <div
             ref={containerRef}
-            className="w-full h-full bg-gradient-to-br from-emerald-100 via-green-50 to-cyan-100 overflow-hidden relative select-none"
+            className="w-full h-full overflow-hidden relative select-none"
+            style={{ background: 'var(--cn-bg)', cursor: isDragging ? 'grabbing' : 'grab' }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-            style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
         >
             {/* Filter Tabs */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex gap-1 bg-white/95 backdrop-blur-sm rounded-2xl p-1.5 shadow-xl">
+            <div className="cn-glass absolute top-4 left-1/2 -translate-x-1/2 z-30 flex gap-1 p-1.5">
                 {[
                     { key: 'all', label: 'All', icon: '🗺️' },
                     { key: 'academic', label: 'Academic', icon: '🏫' },
@@ -297,8 +297,10 @@ export default function CustomCampusMap({ onBuildingClick, selectedBuilding, sea
                     <button
                         key={tab.key}
                         onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${activeTab === tab.key ? 'bg-blue-500 text-white shadow-lg' : 'text-gray-600 hover:bg-gray-100'
-                            }`}
+                        className="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2"
+                        style={activeTab === tab.key
+                            ? { background: 'var(--cn-accent-purple)', color: '#fff', boxShadow: 'var(--cn-shadow-glow-purple)' }
+                            : { color: 'var(--cn-text-3)' }}
                     >
                         <span>{tab.icon}</span>
                         <span className="hidden sm:inline">{tab.label}</span>
@@ -318,9 +320,9 @@ export default function CustomCampusMap({ onBuildingClick, selectedBuilding, sea
             >
                 <defs>
                     <pattern id="campusGrass" width="3" height="3" patternUnits="userSpaceOnUse">
-                        <rect width="3" height="3" fill="#d1fae5" />
-                        <circle cx="1" cy="1" r="0.2" fill="#a7f3d0" />
-                        <circle cx="2.5" cy="2.5" r="0.15" fill="#6ee7b7" />
+                        <rect width="3" height="3" fill="#150f28" />
+                        <circle cx="1" cy="1" r="0.2" fill="#1e1533" />
+                        <circle cx="2.5" cy="2.5" r="0.15" fill="#2a1f47" />
                     </pattern>
                     <filter id="buildingShadow">
                         <feDropShadow dx="0.4" dy="0.4" stdDeviation="0.5" floodOpacity="0.25" />
@@ -334,8 +336,8 @@ export default function CustomCampusMap({ onBuildingClick, selectedBuilding, sea
                 {/* Background */}
                 <rect width="100" height="100" fill="url(#campusGrass)" />
 
-                {/* Campus border */}
-                <rect x="1" y="1" width="98" height="98" fill="none" stroke="#16a34a" strokeWidth="0.4" strokeDasharray="2,1" rx="3" />
+                {/* Campus border — cursed-purple accent */}
+                <rect x="1" y="1" width="98" height="98" fill="none" stroke="#8b5cf6" strokeWidth="0.4" strokeDasharray="2,1" rx="3" />
 
                 {/* Roads */}
                 {ROADS.map((road, i) => (
@@ -343,7 +345,7 @@ export default function CustomCampusMap({ onBuildingClick, selectedBuilding, sea
                         <polyline
                             points={road.points.map(p => p.join(',')).join(' ')}
                             fill="none"
-                            stroke="#9ca3af"
+                            stroke="#4a3f6b"
                             strokeWidth={road.main ? 2.5 : 1.5}
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -351,19 +353,19 @@ export default function CustomCampusMap({ onBuildingClick, selectedBuilding, sea
                         <polyline
                             points={road.points.map(p => p.join(',')).join(' ')}
                             fill="none"
-                            stroke="#fcd34d"
+                            stroke="#8b5cf6"
                             strokeWidth="0.25"
                             strokeDasharray="1,1"
                         />
                     </g>
                 ))}
 
-                {/* Gardens */}
+                {/* Gardens — cursed-purple tinted */}
                 {GARDENS.map((g, i) => (
                     <g key={i}>
-                        <circle cx={g.cx} cy={g.cy} r={g.r} fill="#86efac" />
-                        <circle cx={g.cx - g.r / 3} cy={g.cy - g.r / 3} r={g.r / 3} fill="#22c55e" />
-                        <circle cx={g.cx + g.r / 3} cy={g.cy + g.r / 3} r={g.r / 4} fill="#16a34a" />
+                        <circle cx={g.cx} cy={g.cy} r={g.r} fill="#2a1f47" />
+                        <circle cx={g.cx - g.r / 3} cy={g.cy - g.r / 3} r={g.r / 3} fill="#3d2d63" />
+                        <circle cx={g.cx + g.r / 3} cy={g.cy + g.r / 3} r={g.r / 4} fill="#8b5cf6" />
                     </g>
                 ))}
 
@@ -417,13 +419,15 @@ export default function CustomCampusMap({ onBuildingClick, selectedBuilding, sea
                                 opacity="0.75"
                             />
 
-                            {/* Front face */}
+                            {/* Front face — cursed-purple glow ring on hover/select instead of plain white */}
                             <polygon
                                 points={getPoints(b.shape)}
                                 fill={b.color}
-                                stroke={isHovered || isSelected ? '#fff' : 'rgba(255,255,255,0.4)'}
+                                stroke={isHovered || isSelected ? '#8b5cf6' : 'rgba(139,92,246,0.35)'}
                                 strokeWidth={isHovered || isSelected ? 0.5 : 0.2}
                                 filter={isHovered || isSelected ? 'url(#glowEffect)' : 'url(#buildingShadow)'}
+                                className={isHovered || isSelected ? 'animate-marker-pop' : ''}
+                                style={isHovered || isSelected ? { filter: 'url(#glowEffect) drop-shadow(0 0 3px rgba(139,92,246,0.8))' } : undefined}
                             />
 
                             {/* Building label */}
@@ -449,21 +453,21 @@ export default function CustomCampusMap({ onBuildingClick, selectedBuilding, sea
 
             {/* Compass / Rotation Control */}
             <div className="absolute top-20 right-4 z-30 flex flex-col items-center gap-2">
-                <div className="bg-white rounded-2xl shadow-xl p-2">
+                <div className="cn-glass p-2">
                     <div
                         className="w-14 h-14 relative"
                         style={{ transform: `rotate(${-transform.rotation}deg)`, transition: 'transform 0.2s' }}
                     >
                         <svg viewBox="0 0 50 50" className="w-full h-full">
-                            <circle cx="25" cy="25" r="22" fill="none" stroke="#e5e7eb" strokeWidth="2" />
-                            <polygon points="25,6 21,18 25,15 29,18" fill="#ef4444" />
-                            <polygon points="25,44 21,32 25,35 29,32" fill="#9ca3af" />
-                            <text x="25" y="5" textAnchor="middle" fontSize="6" fill="#ef4444" fontWeight="bold">N</text>
+                            <circle cx="25" cy="25" r="22" fill="none" stroke="var(--cn-border)" strokeWidth="2" />
+                            <polygon points="25,6 21,18 25,15 29,18" fill="var(--cn-accent-sukuna)" />
+                            <polygon points="25,44 21,32 25,35 29,32" fill="var(--cn-text-3)" />
+                            <text x="25" y="5" textAnchor="middle" fontSize="6" fill="var(--cn-accent-sukuna)" fontWeight="bold">N</text>
                         </svg>
                     </div>
                     <div className="flex gap-1 mt-2">
-                        <button onClick={() => rotate(-15)} className="w-6 h-6 bg-gray-100 rounded text-xs hover:bg-gray-200">↺</button>
-                        <button onClick={() => rotate(15)} className="w-6 h-6 bg-gray-100 rounded text-xs hover:bg-gray-200">↻</button>
+                        <button onClick={() => rotate(-15)} className="w-6 h-6 rounded text-xs transition-all" style={{ background: 'var(--cn-surface-2)', color: 'var(--cn-text-2)' }}>↺</button>
+                        <button onClick={() => rotate(15)} className="w-6 h-6 rounded text-xs transition-all" style={{ background: 'var(--cn-surface-2)', color: 'var(--cn-text-2)' }}>↻</button>
                     </div>
                 </div>
             </div>
@@ -471,11 +475,11 @@ export default function CustomCampusMap({ onBuildingClick, selectedBuilding, sea
             {/* Zoom Controls */}
             <div className="absolute bottom-24 right-4 z-30 flex flex-col gap-1">
                 <button onClick={() => setTransform(t => ({ ...t, scale: Math.min(t.scale * 1.3, 5) }))}
-                    className="w-12 h-12 bg-white rounded-xl shadow-xl flex items-center justify-center text-xl hover:bg-gray-50 font-light">+</button>
+                    className="cn-glass w-12 h-12 flex items-center justify-center text-xl font-light" style={{ color: 'var(--cn-text-1)' }}>+</button>
                 <button onClick={() => setTransform(t => ({ ...t, scale: Math.max(t.scale * 0.7, 0.5) }))}
-                    className="w-12 h-12 bg-white rounded-xl shadow-xl flex items-center justify-center text-xl hover:bg-gray-50 font-light">−</button>
+                    className="cn-glass w-12 h-12 flex items-center justify-center text-xl font-light" style={{ color: 'var(--cn-text-1)' }}>−</button>
                 <button onClick={resetView}
-                    className="w-12 h-12 bg-white rounded-xl shadow-xl flex items-center justify-center hover:bg-gray-50" title="Reset View">
+                    className="cn-glass w-12 h-12 flex items-center justify-center" style={{ color: 'var(--cn-text-1)' }} title="Reset View">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
@@ -484,7 +488,7 @@ export default function CustomCampusMap({ onBuildingClick, selectedBuilding, sea
 
             {/* Hover Tooltip */}
             {hovered && (
-                <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-2xl px-5 py-4 z-40 pointer-events-none">
+                <div className="cn-glass absolute top-20 left-1/2 -translate-x-1/2 px-5 py-4 z-40 pointer-events-none">
                     {(() => {
                         const b = BUILDINGS.find(b => b.id === hovered)
                         if (!b) return null
@@ -494,9 +498,9 @@ export default function CustomCampusMap({ onBuildingClick, selectedBuilding, sea
                                     {b.icon}
                                 </div>
                                 <div>
-                                    <p className="font-bold text-gray-900 text-lg">{b.name}</p>
-                                    <p className="text-sm text-gray-500">{b.dept}</p>
-                                    <p className="text-xs text-gray-400 mt-1">{b.floors} floors</p>
+                                    <p className="font-bold text-lg" style={{ color: 'var(--cn-text-1)' }}>{b.name}</p>
+                                    <p className="text-sm" style={{ color: 'var(--cn-text-3)' }}>{b.dept}</p>
+                                    <p className="text-xs mt-1" style={{ color: 'var(--cn-text-3)', opacity: 0.7 }}>{b.floors} floors</p>
                                 </div>
                             </div>
                         )
@@ -505,9 +509,9 @@ export default function CustomCampusMap({ onBuildingClick, selectedBuilding, sea
             )}
 
             {/* Legend */}
-            <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl shadow-xl p-4 z-30">
-                <p className="text-xs font-bold text-gray-500 mb-2">CAMPUS ZONES</p>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+            <div className="cn-glass absolute bottom-4 left-4 p-4 z-30">
+                <p className="text-xs font-bold mb-2" style={{ color: 'var(--cn-text-3)' }}>CAMPUS ZONES</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs" style={{ color: 'var(--cn-text-2)' }}>
                     <div className="flex items-center gap-2"><div className="w-3 h-3 rounded" style={{ background: '#3b82f6' }}></div><span>A Blocks (Engg)</span></div>
                     <div className="flex items-center gap-2"><div className="w-3 h-3 rounded" style={{ background: '#22c55e' }}></div><span>C Blocks (CSE)</span></div>
                     <div className="flex items-center gap-2"><div className="w-3 h-3 rounded" style={{ background: '#ec4899' }}></div><span>D Blocks (Mgmt)</span></div>
@@ -518,7 +522,7 @@ export default function CustomCampusMap({ onBuildingClick, selectedBuilding, sea
             </div>
 
             {/* Scale indicator */}
-            <div className="absolute bottom-4 right-20 bg-white/90 rounded-lg px-3 py-1.5 text-xs text-gray-600 z-30">
+            <div className="cn-glass absolute bottom-4 right-20 px-3 py-1.5 text-xs z-30" style={{ color: 'var(--cn-text-2)' }}>
                 {Math.round(transform.scale * 100)}% | {transform.rotation}°
             </div>
         </div>

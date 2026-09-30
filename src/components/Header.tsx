@@ -82,10 +82,11 @@ export default function Header() {
         <header
             className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
             style={{
-                background: isMap ? 'transparent' : 'rgba(15,23,42,0.9)',
+                background: isMap ? 'transparent' : 'var(--cn-nav-bg)',
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
-                borderBottom: isMap ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                borderBottom: isMap ? 'none' : '1px solid var(--cn-nav-border)',
+                boxShadow: isMap ? 'none' : 'var(--cn-nav-shadow)',
             }}
         >
             {/* Unverified Banner */}
@@ -107,10 +108,10 @@ export default function Header() {
                     {/* Logo */}
                     <Link href="/map" className="flex items-center gap-2.5 group">
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg overflow-hidden bg-white"
-                            style={{ boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }}>
+                            style={{ boxShadow: 'var(--cn-shadow-glow-purple)' }}>
                             <img src="/logo.png" alt="De-tect Logo" className="w-full h-full object-cover" />
                         </div>
-                        <span className="font-bold text-base text-white group-hover:text-indigo-300 transition-colors">
+                        <span className="font-bold text-base text-white group-hover:text-purple-300 transition-colors">
                             De-tect
                         </span>
                     </Link>
@@ -126,9 +127,9 @@ export default function Header() {
                                         href={item.href}
                                         className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all"
                                         style={{
-                                            color: active ? '#a5b4fc' : 'rgba(255,255,255,0.65)',
-                                            background: active ? 'rgba(99,102,241,0.15)' : 'transparent',
-                                            border: active ? '1px solid rgba(99,102,241,0.3)' : '1px solid transparent',
+                                            color: active ? 'var(--cn-accent-purple)' : 'rgba(255,255,255,0.65)',
+                                            background: active ? 'var(--cn-accent-purple-glow)' : 'transparent',
+                                            border: active ? '1px solid var(--cn-accent-purple)' : '1px solid transparent',
                                         }}
                                     >
                                         <span>{item.icon}</span>
@@ -148,9 +149,9 @@ export default function Header() {
                                                 href={item.href}
                                                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all"
                                                 style={{
-                                                    color: active ? '#fbbf24' : 'rgba(255,255,255,0.65)',
-                                                    background: active ? 'rgba(251,191,36,0.12)' : 'transparent',
-                                                    border: active ? '1px solid rgba(251,191,36,0.25)' : '1px solid transparent',
+                                                    color: active ? 'var(--cn-accent-admin)' : 'rgba(255,255,255,0.65)',
+                                                    background: active ? 'rgba(245,158,11,0.12)' : 'transparent',
+                                                    border: active ? '1px solid var(--cn-accent-admin)' : '1px solid transparent',
                                                 }}
                                             >
                                                 <span>{item.icon}</span>
@@ -187,8 +188,7 @@ export default function Header() {
 
                                 {isMenuOpen && (
                                     <div
-                                        className="absolute right-0 mt-2 w-52 rounded-2xl shadow-2xl overflow-hidden z-50 animate-fade-in"
-                                        style={{ background: 'rgba(15,23,42,0.96)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(24px)' }}
+                                        className="cn-glass absolute right-0 mt-2 w-52 shadow-2xl overflow-hidden z-50 animate-fade-in"
                                     >
                                         <div className="px-4 py-3 border-b border-white/8">
                                             <p className="text-sm font-semibold text-white">{user.name}</p>
@@ -256,8 +256,8 @@ export default function Header() {
                                         onClick={() => setIsMenuOpen(false)}
                                         className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
                                         style={{
-                                            color: active ? '#a5b4fc' : 'rgba(255,255,255,0.65)',
-                                            background: active ? 'rgba(99,102,241,0.12)' : 'transparent',
+                                            color: active ? 'var(--cn-accent-purple)' : 'rgba(255,255,255,0.65)',
+                                            background: active ? 'var(--cn-accent-purple-glow)' : 'transparent',
                                         }}
                                     >
                                         <span>{item.icon}</span> {item.label}

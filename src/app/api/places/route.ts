@@ -19,7 +19,11 @@ export async function GET(request: NextRequest) {
                 to_jsonb(f.*) as floor,
                 to_jsonb(r.*) as room,
                 jsonb_build_object('id', u.id, 'name', u.name) as "createdBy",
-                (SELECT "photoUrl" FROM place_photos pp WHERE pp."placeId" = p.id LIMIT 1) as "mainPhoto"
+                -- Only hosted URLs in the list; inline base64 photos (data:...) are
+                -- megabytes each and are loaded lazily via /api/places/[id] instead.
+                (SELECT "photoUrl" FROM place_photos pp
+                   WHERE pp."placeId" = p.id AND pp."photoUrl" NOT LIKE 'data:%'
+                   LIMIT 1) as "mainPhoto"
             FROM places p
             LEFT JOIN place_categories pc ON p."categoryId" = pc.id
             LEFT JOIN blocks b ON p."blockId" = b.id

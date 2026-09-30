@@ -3,14 +3,12 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useTheme } from '@/lib/useTheme'
 import { authClient } from '@/lib/auth-client'
 
 interface User { id: string; name: string; email: string; role: string; emailVerified?: boolean }
 
 export default function ProfilePage() {
     const router = useRouter()
-    const { toggleTheme, isDark, mounted } = useTheme()
     const [user, setUser] = useState<User | null>(null)
     const [stats, setStats] = useState<{ places: number; reviews: number } | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -78,13 +76,6 @@ export default function ProfilePage() {
                         <span className="font-bold text-sm" style={{ color: 'var(--cn-text-1)' }}>De-tect</span>
                     </Link>
                     <div className="flex items-center gap-2">
-                        {mounted && (
-                            <button onClick={toggleTheme} title="Toggle theme"
-                                className="w-9 h-9 rounded-full flex items-center justify-center text-base transition-all hover:scale-110 active:scale-95"
-                                style={{ background: 'var(--cn-toggle-bg)' }}>
-                                {isDark ? '☀️' : '🌙'}
-                            </button>
-                        )}
                         <Link href="/map" className="hidden sm:flex items-center gap-1 px-3 py-2 rounded-full text-xs font-semibold transition-all hover:opacity-80" style={{ background: 'var(--cn-toggle-bg)', color: 'var(--cn-text-2)' }}>
                             🗺️ Map
                         </Link>
@@ -203,25 +194,6 @@ export default function ProfilePage() {
                                         <span className="text-sm font-medium" style={{ color: 'var(--cn-text-1)' }}>{row.value}</span>
                                     </div>
                                 ))}
-                            </div>
-                        </div>
-
-                        {/* Appearance */}
-                        <div className="rounded-2xl p-5 sm:p-6" style={{ background: 'var(--cn-surface)', border: '1px solid var(--cn-border)' }}>
-                            <h3 className="font-bold text-sm mb-4" style={{ color: 'var(--cn-text-1)' }}>🎨 Appearance</h3>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium text-sm" style={{ color: 'var(--cn-text-1)' }}>{isDark ? 'Dark Mode' : 'Light Mode'}</p>
-                                    <p className="text-xs mt-0.5" style={{ color: 'var(--cn-text-3)' }}>Click to switch theme</p>
-                                </div>
-                                {mounted && (
-                                    <button onClick={toggleTheme}
-                                        className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all hover:scale-105 active:scale-95"
-                                        style={{ background: isDark ? 'rgba(251,191,36,0.15)' : 'rgba(99,102,241,0.08)', color: isDark ? '#fbbf24' : '#6366f1', border: isDark ? '1px solid rgba(251,191,36,0.3)' : '1px solid rgba(99,102,241,0.2)' }}>
-                                        <span>{isDark ? '☀️' : '🌙'}</span>
-                                        <span>{isDark ? 'Switch to Light' : 'Switch to Dark'}</span>
-                                    </button>
-                                )}
                             </div>
                         </div>
                     </div>

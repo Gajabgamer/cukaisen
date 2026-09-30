@@ -24,20 +24,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
 
     return (
-        <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)' }}>
+        <div data-intensity="low" className="min-h-screen" style={{ background: 'var(--cn-bg)' }}>
             {/* Sidebar */}
             <aside className="fixed left-0 top-0 bottom-0 w-60 z-40 flex flex-col"
-                style={{ background: 'rgba(15,23,42,0.96)', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+                style={{ background: 'var(--cn-nav-bg)', borderRight: '1px solid var(--cn-nav-border)' }}>
                 {/* Logo */}
-                <div className="px-5 py-5 border-b border-white/5">
+                <div className="px-5 py-5" style={{ borderBottom: '1px solid var(--cn-border-soft)' }}>
                     <Link href="/map" className="flex items-center gap-3 group">
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg overflow-hidden bg-white"
-                            style={{ boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }}>
+                            style={{ boxShadow: 'var(--cn-shadow-glow-purple)' }}>
                             <img src="/logo.png" alt="De-tect Logo" className="w-full h-full object-cover" />
                         </div>
                         <div>
-                            <p className="font-bold text-sm text-white leading-tight group-hover:text-indigo-300 transition-colors">De-tect</p>
-                            <p className="text-[10px] text-amber-400 font-semibold uppercase tracking-wider">Admin Panel</p>
+                            <p className="font-bold text-sm leading-tight group-hover:text-[var(--cn-accent-purple)] transition-colors" style={{ color: 'var(--cn-text-1)' }}>De-tect</p>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--cn-accent-admin)' }}>Admin Panel</p>
                         </div>
                     </Link>
                 </div>
@@ -48,7 +48,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         <Link
                             key={item.href}
                             href={item.href}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/6 transition-all group"
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group"
+                            style={{ color: 'var(--cn-text-2)' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--cn-text-1)'; e.currentTarget.style.background = 'var(--cn-surface-2)' }}
+                            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--cn-text-2)'; e.currentTarget.style.background = 'transparent' }}
                         >
                             <span className="text-base">{item.icon}</span>
                             {item.label}
@@ -57,13 +60,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </nav>
 
                 {/* Footer */}
-                <div className="px-4 py-4 border-t border-white/5 space-y-2">
+                <div className="px-4 py-4 space-y-2" style={{ borderTop: '1px solid var(--cn-border-soft)' }}>
                     <Link href="/map"
-                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-white/50 hover:text-white hover:bg-white/6 transition-all">
+                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all"
+                        style={{ color: 'var(--cn-text-3)' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--cn-text-1)'; e.currentTarget.style.background = 'var(--cn-surface-2)' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--cn-text-3)'; e.currentTarget.style.background = 'transparent' }}>
                         <span>🗺️</span> View Map
                     </Link>
                     <button onClick={handleLogout}
-                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-red-400/70 hover:text-red-300 hover:bg-red-500/8 transition-all text-left">
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all text-left"
+                        style={{ color: 'var(--cn-accent-sukuna)', opacity: 0.75 }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'rgba(220,38,38,0.08)' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.75'; e.currentTarget.style.background = 'transparent' }}>
                         <span>🚪</span> Sign Out
                     </button>
                 </div>

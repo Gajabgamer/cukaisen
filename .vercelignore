@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.env*
+references
+cutour360.zip
+mappls-import.json
+google-import.json
+google-import-raw.json
+scripts
+docs
+propmt.md
+*.log

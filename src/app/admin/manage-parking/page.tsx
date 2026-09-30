@@ -102,10 +102,10 @@ export default function AdminParkingPage() {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'AVAILABLE': return 'bg-green-500 hover:bg-green-600'
-            case 'OCCUPIED': return 'bg-red-500 hover:bg-red-600'
-            case 'RESERVED': return 'bg-yellow-500 hover:bg-yellow-600'
-            default: return 'bg-gray-500'
+            case 'AVAILABLE': return 'var(--cn-status-available)'
+            case 'OCCUPIED': return 'var(--cn-status-occupied)'
+            case 'RESERVED': return 'var(--cn-status-reserved)'
+            default: return 'var(--cn-text-3)'
         }
     }
 
@@ -121,30 +121,30 @@ export default function AdminParkingPage() {
     const currentArea = parkingAreas.find(a => a.id === selectedArea)
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen" data-intensity="low" style={{ background: 'var(--cn-bg)' }}>
             <Header />
 
             <main className="pt-20 pb-8 px-4">
                 <div className="max-w-4xl mx-auto">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">🚗 Manage Parking</h1>
-                    <p className="text-gray-600 mb-6">
+                    <h1 className="cn-display text-2xl font-bold mb-2" style={{ color: 'var(--cn-text-1)' }}>🚗 Manage Parking</h1>
+                    <p className="mb-6" style={{ color: 'var(--cn-text-3)' }}>
                         Click on slots to toggle their status
                     </p>
 
                     {error ? (
-                        <div className="text-center py-20 bg-white rounded-3xl border border-red-200">
+                        <div className="cn-glass text-center py-20">
                             <span className="text-5xl mb-4 block">🚫</span>
-                            <h3 className="text-xl font-bold text-red-500 mb-2">Access Denied</h3>
-                            <p className="text-red-400/80">{error}</p>
+                            <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--cn-accent-sukuna)' }}>Access Denied</h3>
+                            <p style={{ color: 'var(--cn-accent-sukuna)', opacity: 0.7 }}>{error}</p>
                         </div>
                     ) : isLoading ? (
                         <div className="flex items-center justify-center py-12">
-                            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+                            <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-transparent" style={{ borderColor: 'var(--cn-accent-purple)', borderTopColor: 'transparent' }}></div>
                         </div>
                     ) : parkingAreas.length === 0 ? (
                         <div className="text-center py-12">
                             <span className="text-4xl mb-4 block">🚗</span>
-                            <p className="text-gray-500">No parking areas configured</p>
+                            <p style={{ color: 'var(--cn-text-3)' }}>No parking areas configured</p>
                         </div>
                     ) : (
                         <>
@@ -154,13 +154,13 @@ export default function AdminParkingPage() {
                                     <button
                                         key={area.id}
                                         onClick={() => setSelectedArea(area.id)}
-                                        className={`flex-shrink-0 px-4 py-3 rounded-xl transition-all ${selectedArea === area.id
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-white border border-gray-200 text-gray-700 hover:border-blue-300'
-                                            }`}
+                                        className="flex-shrink-0 px-4 py-3 rounded-xl transition-all"
+                                        style={selectedArea === area.id
+                                            ? { background: 'var(--cn-accent-purple)', color: '#fff' }
+                                            : { background: 'var(--cn-surface-2)', border: '1px solid var(--cn-border)', color: 'var(--cn-text-2)' }}
                                     >
                                         <div className="font-medium">{area.name}</div>
-                                        <div className={`text-sm ${selectedArea === area.id ? 'text-blue-100' : 'text-gray-500'}`}>
+                                        <div className="text-sm" style={{ color: selectedArea === area.id ? 'rgba(255,255,255,0.8)' : 'var(--cn-text-3)' }}>
                                             {area.block.name}
                                         </div>
                                     </button>
@@ -171,23 +171,23 @@ export default function AdminParkingPage() {
                                 <>
                                     {/* Quick Stats */}
                                     <div className="grid grid-cols-3 gap-4 mb-6">
-                                        <div className="bg-green-50 rounded-xl p-4 border border-green-200 text-center">
-                                            <div className="text-2xl font-bold text-green-600">{currentArea.stats.available}</div>
-                                            <div className="text-sm text-green-600">Available</div>
+                                        <div className="rounded-xl p-4 text-center" style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)' }}>
+                                            <div className="text-2xl font-bold" style={{ color: 'var(--cn-status-available)' }}>{currentArea.stats.available}</div>
+                                            <div className="text-sm" style={{ color: 'var(--cn-status-available)' }}>Available</div>
                                         </div>
-                                        <div className="bg-red-50 rounded-xl p-4 border border-red-200 text-center">
-                                            <div className="text-2xl font-bold text-red-600">{currentArea.stats.occupied}</div>
-                                            <div className="text-sm text-red-600">Occupied</div>
+                                        <div className="rounded-xl p-4 text-center" style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.25)' }}>
+                                            <div className="text-2xl font-bold" style={{ color: 'var(--cn-status-occupied)' }}>{currentArea.stats.occupied}</div>
+                                            <div className="text-sm" style={{ color: 'var(--cn-status-occupied)' }}>Occupied</div>
                                         </div>
-                                        <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200 text-center">
-                                            <div className="text-2xl font-bold text-yellow-600">{currentArea.stats.reserved}</div>
-                                            <div className="text-sm text-yellow-600">Reserved</div>
+                                        <div className="rounded-xl p-4 text-center" style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)' }}>
+                                            <div className="text-2xl font-bold" style={{ color: 'var(--cn-status-reserved)' }}>{currentArea.stats.reserved}</div>
+                                            <div className="text-sm" style={{ color: 'var(--cn-status-reserved)' }}>Reserved</div>
                                         </div>
                                     </div>
 
                                     {/* Interactive Slot Grid */}
-                                    <div className="bg-white rounded-xl p-4 border border-gray-200">
-                                        <h2 className="font-semibold text-gray-900 mb-4">
+                                    <div className="cn-glass p-4">
+                                        <h2 className="font-semibold mb-4" style={{ color: 'var(--cn-text-1)' }}>
                                             Click to toggle status (Available → Occupied → Reserved → Available)
                                         </h2>
                                         <div className="grid grid-cols-5 md:grid-cols-10 gap-3">
@@ -196,7 +196,8 @@ export default function AdminParkingPage() {
                                                     key={slot.id}
                                                     onClick={() => updateSlotStatus(slot.id, getNextStatus(slot.status))}
                                                     disabled={updatingSlot === slot.id}
-                                                    className={`aspect-square rounded-lg ${getStatusColor(slot.status)} flex items-center justify-center text-white text-sm font-medium transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                    className="aspect-square rounded-lg flex items-center justify-center text-white text-sm font-medium transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    style={{ background: getStatusColor(slot.status) }}
                                                     title={`${slot.slotNumber} - ${slot.status} (click to change)`}
                                                 >
                                                     {updatingSlot === slot.id ? (
@@ -209,17 +210,17 @@ export default function AdminParkingPage() {
                                         </div>
 
                                         {/* Legend */}
-                                        <div className="flex gap-4 mt-4 pt-4 border-t border-gray-200">
-                                            <div className="flex items-center gap-2 text-sm">
-                                                <div className="w-4 h-4 rounded bg-green-500"></div>
+                                        <div className="flex gap-4 mt-4 pt-4" style={{ borderTop: '1px solid var(--cn-border)' }}>
+                                            <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--cn-text-2)' }}>
+                                                <div className="w-4 h-4 rounded" style={{ background: 'var(--cn-status-available)' }}></div>
                                                 <span>Available</span>
                                             </div>
-                                            <div className="flex items-center gap-2 text-sm">
-                                                <div className="w-4 h-4 rounded bg-red-500"></div>
+                                            <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--cn-text-2)' }}>
+                                                <div className="w-4 h-4 rounded" style={{ background: 'var(--cn-status-occupied)' }}></div>
                                                 <span>Occupied</span>
                                             </div>
-                                            <div className="flex items-center gap-2 text-sm">
-                                                <div className="w-4 h-4 rounded bg-yellow-500"></div>
+                                            <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--cn-text-2)' }}>
+                                                <div className="w-4 h-4 rounded" style={{ background: 'var(--cn-status-reserved)' }}></div>
                                                 <span>Reserved</span>
                                             </div>
                                         </div>

@@ -4,96 +4,69 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
-// Chandigarh University Campus Center
-const CU_CENTER: [number, number] = [76.5766, 30.7699]
+import {
+    CU_CENTER, GATE_2_COORDS, CU_CAMPUS_BOUNDARY, OUTER_BOUNDS, CU_MAX_BOUNDS,
+    isWithinCU, calculateBearing, metersBetween,
+} from '@/lib/map/campusGeo'
+import { applyCursedStyle, ensureRouteLayers, startRouteFlow, startCursedPulse, mapAlive } from '@/lib/map/cursedStyle'
+import { kanjiFor, startJapanProps, startFountain } from '@/lib/map/japanStyle'
 
-const GATE_2_COORDS = { lat: 30.772587, lng: 76.576408 }
-
-function isWithinCU(lat: number, lng: number) {
-    // Exact MapLibre maxBounds
-    return lat >= 30.7620 && lat <= 30.7775 && lng >= 76.5670 && lng <= 76.5840;
-}
-
-function calculateBearing(lat1: number, lng1: number, lat2: number, lng2: number) {
-    const toRad = Math.PI / 180;
-    const toDeg = 180 / Math.PI;
-    const dLng = (lng2 - lng1) * toRad;
-    const y = Math.sin(dLng) * Math.cos(lat2 * toRad);
-    const x = Math.cos(lat1 * toRad) * Math.sin(lat2 * toRad) - Math.sin(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.cos(dLng);
-    return (Math.atan2(y, x) * toDeg + 360) % 360;
-}
-
-// Realistic ~65-point polygon tracing CU Chandigarh campus perimeter
-const CU_CAMPUS_BOUNDARY: [number, number][] = [
-    [76.5687, 30.7718],
-    [76.5690, 30.7730],
-    [76.5693, 30.7742],
-    [76.5698, 30.7751],
-    [76.5705, 30.7757],
-    [76.5714, 30.7761],
-    [76.5724, 30.7763],
-    [76.5735, 30.7764],
-    [76.5747, 30.7763],
-    [76.5760, 30.7762],
-    [76.5772, 30.7762],
-    [76.5783, 30.7761],
-    [76.5793, 30.7759],
-    [76.5801, 30.7756],
-    [76.5808, 30.7752],
-    [76.5814, 30.7747],
-    [76.5819, 30.7741],
-    [76.5822, 30.7734],
-    [76.5824, 30.7726],
-    [76.5824, 30.7718],
-    [76.5823, 30.7710],
-    [76.5821, 30.7702],
-    [76.5819, 30.7695],
-    [76.5817, 30.7688],
-    [76.5816, 30.7681],
-    [76.5816, 30.7674],
-    [76.5817, 30.7667],
-    [76.5818, 30.7660],
-    [76.5817, 30.7653],
-    [76.5814, 30.7647],
-    [76.5810, 30.7642],
-    [76.5804, 30.7638],
-    [76.5797, 30.7635],
-    [76.5789, 30.7633],
-    [76.5780, 30.7632],
-    [76.5771, 30.7631],
-    [76.5762, 30.7631],
-    [76.5753, 30.7631],
-    [76.5744, 30.7631],
-    [76.5735, 30.7631],
-    [76.5726, 30.7632],
-    [76.5717, 30.7633],
-    [76.5709, 30.7635],
-    [76.5702, 30.7638],
-    [76.5696, 30.7642],
-    [76.5691, 30.7647],
-    [76.5688, 30.7653],
-    [76.5686, 30.7660],
-    [76.5685, 30.7667],
-    [76.5685, 30.7674],
-    [76.5685, 30.7681],
-    [76.5685, 30.7688],
-    [76.5685, 30.7695],
-    [76.5685, 30.7702],
-    [76.5685, 30.7710],
-    [76.5686, 30.7718],
-    [76.5687, 30.7718],
-]
-
-const OUTER_BOUNDS: [number, number][] = [
-    [76.40, 30.90],
-    [76.80, 30.90],
-    [76.80, 30.60],
-    [76.40, 30.60],
-    [76.40, 30.90],
-]
+// Drifting sakura petals over the Cursed view (deterministic, no hydration churn)
+const PETALS = Array.from({ length: 18 }, (_, i) => {
+    const r = (n: number) => { const s = Math.sin(i * 91.7 + n * 13.3) * 43758.5453; return s - Math.floor(s) }
+    return { x: r(1) * 100, delay: -r(2) * 14, dur: 9 + r(3) * 8, sway: 30 + r(4) * 60, size: 7 + r(5) * 7 }
+})
 
 
 const FORCED_BUILDING_HEIGHT = 28
+
+// Radius around the view centre where minor pins and name placards show
+const NEAR_RADIUS_M = 200
+function nearbyRing(lng: number, lat: number, r: number): [number, number][] {
+    const dLat = r / 111320, dLng = r / (111320 * Math.cos(lat * Math.PI / 180))
+    const ring: [number, number][] = []
+    for (let i = 0; i <= 32; i++) {
+        const a = (i / 32) * Math.PI * 2
+        ring.push([lng + Math.cos(a) * dLng, lat + Math.sin(a) * dLat])
+    }
+    return ring
+}
+
+// ── Pin tiers ──
+// Core campus places (blocks, libraries, gates, grounds, admin-named spots)
+// are always shown. Everyday spots and anything scraped from Google/Mappls
+// are "minor": they only appear when zoomed in (≥17.4).
+const MINOR_CATEGORIES = new Set(['food', 'shop', 'atm & bank', 'medical'])
+// Lower rank wins when minor pins collide
+const MINOR_RANK: Record<string, number> = { food: 0, library: 1, 'atm & bank': 2, medical: 2, shop: 3, parking: 4, hostel: 4, building: 6 }
+function isMinorPlace(p: { category?: { categoryName?: string } | null; description?: string | null }) {
+    const cat = p.category?.categoryName?.toLowerCase() || ''
+    const imported = /^(Data © Google|Imported from Mappls)/.test(p.description || '')
+    return MINOR_CATEGORIES.has(cat) || (imported && cat !== 'library' && cat !== 'gate')
+}
+
+// ── View modes ──
+export type MapMode = 'cursed' | 'normal' | 'satellite'
+const MODE_KEY = 'veil-map-mode'
+const MODES: { id: MapMode; icon: string; title: string; bg: string; glow: string }[] = [
+    { id: 'cursed', icon: '呪', title: 'Cursed view — THE VEIL', bg: 'linear-gradient(135deg,#7a0f2e,#ff1f4b)', glow: '0 0 14px rgba(255,31,75,0.7)' },
+    { id: 'normal', icon: '🗺️', title: 'Normal view — accurate map', bg: 'linear-gradient(135deg,#2563ff,#00d5ff)', glow: '0 0 14px rgba(0,213,255,0.6)' },
+    { id: 'satellite', icon: '🛰️', title: 'Satellite view — real imagery', bg: 'linear-gradient(135deg,#14532d,#22c55e)', glow: '0 0 14px rgba(34,197,94,0.6)' },
+]
+function readMode(): MapMode {
+    if (typeof window === 'undefined') return 'cursed'
+    try {
+        const v = localStorage.getItem(MODE_KEY)
+        return v === 'normal' || v === 'satellite' ? v : 'cursed'
+    } catch { return 'cursed' }
+}
+const SATELLITE_STYLE = {
+    version: 8,
+    glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+    sources: { 'esri-satellite': { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, attribution: 'Tiles © Esri' } },
+    layers: [{ id: 'esri-satellite', type: 'raster', source: 'esri-satellite' }],
+} as maplibregl.StyleSpecification
+const styleFor = (mode: MapMode) => mode === 'satellite' ? SATELLITE_STYLE : 'https://tiles.openfreemap.org/styles/liberty'
 
 const CATEGORY_COLORS = [
     '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
@@ -143,6 +116,21 @@ interface Props {
     onPlaceClick?: (place: Place) => void
     onCancelNavigation?: () => void
     onCancelAdd?: () => void
+    /** Fired after the camera settles (pan/zoom/fly). Used for 360° proximity reveal. */
+    onViewChange?: (view: { lat: number; lng: number; zoom: number }) => void
+    /** Fired every time custom layers are (re)built — initial load and after the satellite toggle. */
+    onMapReady?: (map: maplibregl.Map) => void
+    /** Place ids the user has reclaimed — drawn with a red 呪 seal. */
+    reclaimedIds?: string[]
+    /** Route start override (floating guide / demo). Falls back to GPS, then map centre. */
+    navOrigin?: { lat: number; lng: number } | null
+    /** Fired once a navigation route has been computed. */
+    onRouteReady?: (coords: [number, number][], place: Place) => void
+    /** Fired when the user reaches the navigation target (GPS, guide or simulated). */
+    onArrive?: (place: Place) => void
+    /** Floating guide state (button lives in the map controls). */
+    guideActive?: boolean
+    onToggleGuide?: () => void
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -167,55 +155,75 @@ function ensurePinImage(
     color: string,
     emoji: string,
     selected = false,
+    sealed = false,
 ) {
     if (m.hasImage(imageId)) return
 
-    // Pin canvas: viewBox (0,0,40,52) at 2× pixel ratio
-    const W = 40, H = 52, PR = 2
+    // Talisman pin: canvas (0,0,48,64) at 2× pixel ratio (extra room for the glow)
+    const W = 48, H = 64, PR = 2
     const canvas = document.createElement('canvas')
     canvas.width = W * PR
     canvas.height = H * PR
     const ctx = canvas.getContext('2d')!
     ctx.scale(PR, PR)
+    const cx = 24, cy = 22, r = 17
+    const ring = sealed ? '#ff1f4b' : color
 
-    // ── Tail (draw under the circle so circle overlaps its top edge) ──
+    // ── Neon glow halo ──
+    ctx.save()
+    ctx.shadowColor = ring
+    ctx.shadowBlur = selected ? 16 : 10
+    // Tail: a talisman strip hanging below the seal
     ctx.beginPath()
-    ctx.moveTo(9, 29)
-    ctx.quadraticCurveTo(13, 42, 20, 52)
-    ctx.quadraticCurveTo(27, 42, 31, 29)
+    ctx.moveTo(cx - 6, cy + 12)
+    ctx.lineTo(cx + 6, cy + 12)
+    ctx.lineTo(cx + 3, H - 2)
+    ctx.lineTo(cx, H - 6)
+    ctx.lineTo(cx - 3, H - 2)
     ctx.closePath()
-    ctx.fillStyle = color
+    ctx.fillStyle = '#0b0716'
     ctx.fill()
-
-    // ── Circle body ──
+    ctx.strokeStyle = ring
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+    // Seal body
     ctx.beginPath()
-    ctx.arc(20, 18, 17, 0, Math.PI * 2)
-    ctx.fillStyle = 'white'
+    ctx.arc(cx, cy, r, 0, Math.PI * 2)
+    ctx.fillStyle = '#0b0716'
     ctx.fill()
-    ctx.strokeStyle = color
+    ctx.strokeStyle = ring
     ctx.lineWidth = selected ? 3.5 : 2.5
     ctx.stroke()
+    ctx.restore()
 
-    // ── Inner gloss ──
+    // ── Inner ritual ring ──
     ctx.beginPath()
-    ctx.arc(20, 18, 11, 0, Math.PI * 2)
-    ctx.fillStyle = 'rgba(255,255,255,0.22)'
-    ctx.fill()
+    ctx.setLineDash([2, 2])
+    ctx.arc(cx, cy, r - 5, 0, Math.PI * 2)
+    ctx.strokeStyle = sealed ? 'rgba(255,31,75,0.7)' : 'rgba(255,255,255,0.28)'
+    ctx.lineWidth = 1
+    ctx.stroke()
+    ctx.setLineDash([])
 
-    // ── Extra ring for selected ──
-    if (selected) {
-        ctx.beginPath()
-        ctx.arc(20, 18, 17, 0, Math.PI * 2)
-        ctx.strokeStyle = 'rgba(255,255,255,0.6)'
-        ctx.lineWidth = 2.5
-        ctx.stroke()
-    }
+    // ── Ink marks on the strip ──
+    ctx.fillStyle = ring
+    ctx.fillRect(cx - 1, cy + 17, 2, 4)
+    ctx.fillRect(cx - 1, cy + 24, 2, 3)
 
-    // ── Emoji icon ──
-    ctx.font = `${15}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
+    // ── Icon: category emoji, or the red 呪 seal once reclaimed ──
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(emoji, 20, selected ? 17 : 18)
+    if (sealed) {
+        ctx.font = 'bold 18px "Yu Mincho","MS Mincho","Noto Serif JP",serif'
+        ctx.fillStyle = '#ff1f4b'
+        ctx.shadowColor = '#ff1f4b'
+        ctx.shadowBlur = 6
+        ctx.fillText('呪', cx, cy + 1)
+        ctx.shadowBlur = 0
+    } else {
+        ctx.font = `15px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
+        ctx.fillText(emoji, cx, cy + 1)
+    }
 
     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height)
     m.addImage(
@@ -240,9 +248,38 @@ export default function MapLibreCampusMap({
     onPlaceClick,
     onCancelNavigation,
     onCancelAdd,
+    onViewChange,
+    onMapReady,
+    reclaimedIds = [],
+    navOrigin = null,
+    onRouteReady,
+    onArrive,
+    guideActive = false,
+    onToggleGuide,
 }: Props) {
     const mapContainer = useRef<HTMLDivElement>(null)
     const map = useRef<maplibregl.Map | null>(null)
+    const onViewChangeRef = useRef(onViewChange)
+    const onMapReadyRef = useRef(onMapReady)
+    const onRouteReadyRef = useRef(onRouteReady)
+    const onArriveRef = useRef(onArrive)
+    const navOriginRef = useRef(navOrigin)
+    const navTargetRef = useRef<Place | null>(null)
+    const arrivedRef = useRef(false)
+    useEffect(() => {
+        onViewChangeRef.current = onViewChange
+        onMapReadyRef.current = onMapReady
+        onRouteReadyRef.current = onRouteReady
+        onArriveRef.current = onArrive
+        navOriginRef.current = navOrigin
+    }, [onViewChange, onMapReady, onRouteReady, onArrive, navOrigin])
+
+    const fireArrive = useCallback(() => {
+        const target = navTargetRef.current
+        if (!target || arrivedRef.current) return
+        arrivedRef.current = true
+        onArriveRef.current?.(target)
+    }, [])
 
     // Refs for values used inside MapLibre event handlers
     // (avoids stale closures without re-adding listeners constantly)
@@ -254,15 +291,9 @@ export default function MapLibreCampusMap({
     const pinnedMarkerRef = useRef<maplibregl.Marker | null>(null)
     const lineAnimRef = useRef<number | null>(null)
     const geolocateControlRef = useRef<maplibregl.GeolocateControl | null>(null)
-    const [isFirstPerson, setIsFirstPerson] = useState(false)
-    const keysPressed = useRef<Set<string>>(new Set())
-    const animationRef = useRef<number | null>(null)
-    // Tracks the camera's foot/eye position on the ground (NOT the map center).
-    // The map "center" at pitch=85° is the focal point far ahead of the camera;
-    // eyeRef is where the person is actually standing.
-    const eyeRef = useRef<{ lng: number; lat: number } | null>(null)
     const [mapLoaded, setMapLoaded] = useState(false)
-    const [isSatellite, setIsSatellite] = useState(false)
+    const [mapMode, setMapMode] = useState<MapMode>(readMode)
+    const modeRef = useRef<MapMode>(mapMode)
     const layersAdded = useRef(false)
     const userLocation = useRef<{ lat: number; lng: number } | null>(null)
     const [navStatus, setNavStatus] = useState<'idle' | 'locating' | 'routing' | 'walking' | 'error'>('idle')
@@ -335,9 +366,7 @@ export default function MapLibreCampusMap({
         if (layersAdded.current) return
         layersAdded.current = true
 
-        if (m.getPitch() < 80) {
-            m.setMaxBounds([[76.5670, 30.7620], [76.5840, 30.7775]])
-        }
+        m.setMaxBounds(CU_MAX_BOUNDS)
 
         const style = m.getStyle()
         const sources = style.sources || {}
@@ -371,7 +400,7 @@ export default function MapLibreCampusMap({
                     m.addLayer({ id: 'campus-paths', source: vectorSource, 'source-layer': 'transportation', type: 'line', minzoom: 14, filter: ['any', ['==', ['get', 'class'], 'path'], ['==', ['get', 'class'], 'footway'], ['==', ['get', 'class'], 'pedestrian']], paint: { 'line-color': '#cbd5e1', 'line-width': ['interpolate', ['linear'], ['zoom'], 14, 1, 18, 3], 'line-dasharray': [2, 2], 'line-opacity': 0.8 } })
                 }
             } catch (e) { }
-            try { if (!m.getLayer('campus-parks')) m.addLayer({ id: 'campus-parks', source: vectorSource, 'source-layer': 'landuse', type: 'fill', filter: ['in', ['get', 'class'], ['literal', ['park', 'grass', 'garden', 'meadow', 'recreation_ground']]], paint: { 'fill-color': '#4ade80', 'fill-opacity': 0.25 } }) } catch (e) { }
+            try { if (!m.getLayer('campus-parks')) m.addLayer({ id: 'campus-parks', source: vectorSource, 'source-layer': 'landuse', type: 'fill', filter: ['in', ['get', 'class'], ['literal', ['park', 'grass', 'garden', 'meadow', 'recreation_ground', 'pitch', 'playground', 'stadium', 'track', 'sports_centre', 'village_green']]], paint: { 'fill-color': '#4ade80', 'fill-opacity': 0.25 } }) } catch (e) { }
             try { if (!m.getLayer('campus-water')) m.addLayer({ id: 'campus-water', source: vectorSource, 'source-layer': 'water', type: 'fill', paint: { 'fill-color': '#38bdf8', 'fill-opacity': 0.4 } }) } catch (e) { }
         }
 
@@ -400,10 +429,10 @@ export default function MapLibreCampusMap({
             })
         }
         if (!m.getLayer('campus-mask-layer')) {
-            m.addLayer({ id: 'campus-mask-layer', type: 'fill', source: 'campus-mask', paint: { 'fill-color': '#0f172a', 'fill-opacity': 1 } })
+            m.addLayer({ id: 'campus-mask-layer', type: 'fill', source: 'campus-mask', paint: { 'fill-color': '#0a0713', 'fill-opacity': 1 } })
         }
 
-        // ── Campus boundary glow/line ──
+        // ── Campus boundary glow/line — cursed-purple accent (Cursed_Theme token values) ──
         if (!m.getSource('campus-boundary')) {
             m.addSource('campus-boundary', {
                 type: 'geojson',
@@ -411,40 +440,101 @@ export default function MapLibreCampusMap({
             })
         }
         if (!m.getLayer('campus-boundary-glow')) {
-            m.addLayer({ id: 'campus-boundary-glow', type: 'line', source: 'campus-boundary', paint: { 'line-color': '#6366f1', 'line-width': 8, 'line-opacity': 0.4, 'line-blur': 4 } })
-            m.addLayer({ id: 'campus-boundary-line', type: 'line', source: 'campus-boundary', paint: { 'line-color': '#818cf8', 'line-width': 2.5, 'line-opacity': 0.95 } })
+            m.addLayer({ id: 'campus-boundary-glow', type: 'line', source: 'campus-boundary', paint: { 'line-color': '#8b5cf6', 'line-width': 8, 'line-opacity': 0.4, 'line-blur': 4 } })
+            m.addLayer({ id: 'campus-boundary-line', type: 'line', source: 'campus-boundary', paint: { 'line-color': '#a78bfa', 'line-width': 2.5, 'line-opacity': 0.95 } })
+        }
+
+        // ── Pulse ring under the selected pin ──
+        if (!m.getSource('selected-pulse')) {
+            m.addSource('selected-pulse', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+        }
+        if (!m.getLayer('selected-pulse')) {
+            m.addLayer({
+                id: 'selected-pulse', type: 'circle', source: 'selected-pulse',
+                paint: {
+                    'circle-radius': 12, 'circle-color': '#00f0ff', 'circle-opacity': 0.2,
+                    'circle-stroke-color': '#00f0ff', 'circle-stroke-width': 2, 'circle-stroke-opacity': 0.9,
+                    'circle-pitch-alignment': 'map',
+                },
+            })
         }
 
         // ── GeoJSON source + Symbol layer for place pins ──
         if (!m.getSource('places-source')) {
             m.addSource('places-source', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
         }
+        // Purified ground ring under every reclaimed place
+        if (!m.getLayer('reclaimed-rings')) {
+            m.addLayer({
+                id: 'reclaimed-rings', type: 'circle', source: 'places-source',
+                filter: ['==', ['get', 'sealed'], true],
+                paint: {
+                    'circle-radius': ['interpolate', ['exponential', 2], ['zoom'], 15, 8, 18, 40, 20, 150],
+                    'circle-color': '#5ff5ff', 'circle-opacity': 0.12, 'circle-blur': 0.4,
+                    'circle-stroke-color': '#5ff5ff', 'circle-stroke-width': 2, 'circle-stroke-opacity': 0.8,
+                    'circle-pitch-alignment': 'map',
+                },
+            })
+        }
+        // Minor spots (scraped cafes, shops, ATMs, PGs) only appear when zoomed
+        // in, and hide each other on collision so the map never clutters.
+        if (!m.getLayer('places-minor')) {
+            m.addLayer({
+                id: 'places-minor', type: 'symbol', source: 'places-source', minzoom: 17.4,
+                filter: ['==', ['get', 'minor'], true],
+                layout: {
+                    'icon-image': ['get', 'iconId'],
+                    'icon-anchor': 'bottom',
+                    'icon-allow-overlap': false,
+                    'icon-padding': 2,
+                    'icon-size': ['interpolate', ['linear'], ['zoom'], 17.4, 0.45, 19, 0.65, 20, 0.8],
+                    'symbol-sort-key': ['get', 'rank'],
+                    'text-field': ['step', ['zoom'], '', 18.6, ['get', 'name']],
+                    'text-size': 10.5,
+                    'text-font': ['Noto Sans Regular'],
+                    'text-anchor': 'top',
+                    'text-offset': [0, 0.3],
+                    'text-max-width': 8,
+                    'text-optional': true,
+                },
+                paint: {
+                    'text-color': '#f5f3ff', 'text-halo-color': '#1e1033', 'text-halo-width': 1.4,
+                    'icon-opacity': ['interpolate', ['linear'], ['zoom'], 17.4, 0, 17.8, 1],
+                    'text-opacity': ['interpolate', ['linear'], ['zoom'], 18.6, 0, 18.9, 1],
+                },
+            })
+        }
         if (!m.getLayer('places-layer')) {
             m.addLayer({
                 id: 'places-layer', type: 'symbol', source: 'places-source',
+                filter: ['!=', ['get', 'minor'], true],
                 layout: {
                     'icon-image': ['get', 'iconId'],
                     'icon-anchor': 'bottom',
                     'icon-allow-overlap': true,
                     'icon-ignore-placement': true,
-                    'icon-size': ['interpolate', ['linear'], ['zoom'], 14, 0.7, 17, 1.0, 20, 1.3],
+                    'icon-size': ['interpolate', ['linear'], ['zoom'], 14, 0.5, 17, 0.75, 20, 1.0],
                     'icon-padding': 0,
                 },
             })
         }
 
-        m.on('click', 'places-layer', (e) => {
-            if (!e.features?.length) return
-            const id = e.features[0].properties?.id
-            const place = placesRef.current.find(p => p.id === id)
-            if (!place) return
-            onPlaceClickRef.current?.(place)
-            m.flyTo({ center: [place.longitude!, place.latitude!], zoom: Math.max(m.getZoom(), 17), duration: 800, essential: true })
-        })
-        m.on('mouseenter', 'places-layer', () => { m.getCanvas().style.cursor = 'pointer' })
-        m.on('mouseleave', 'places-layer', () => { if (!pinDropMode) m.getCanvas().style.cursor = '' })
+        for (const layerId of ['places-layer', 'places-minor']) {
+            m.on('click', layerId, (e) => {
+                if (!e.features?.length) return
+                const id = e.features[0].properties?.id
+                const place = placesRef.current.find(p => p.id === id)
+                if (!place) return
+                onPlaceClickRef.current?.(place)
+                m.flyTo({ center: [place.longitude!, place.latitude!], zoom: Math.max(m.getZoom(), 17.6), duration: 800, essential: true })
+            })
+            m.on('mouseenter', layerId, () => { m.getCanvas().style.cursor = 'pointer' })
+            m.on('mouseleave', layerId, () => { if (!pinDropMode) m.getCanvas().style.cursor = '' })
+        }
 
+        if (modeRef.current === 'cursed') applyCursedStyle(m, satellite)
         setMapLoaded(true)
+        onMapReadyRef.current?.(m)
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     // Initialize map
@@ -452,7 +542,7 @@ export default function MapLibreCampusMap({
         if (!mapContainer.current || map.current) return
         map.current = new maplibregl.Map({
             container: mapContainer.current,
-            style: 'https://tiles.openfreemap.org/styles/liberty',
+            style: styleFor(modeRef.current),
             center: CU_CENTER,
             zoom: 16,
             minZoom: 15.2,
@@ -487,6 +577,31 @@ export default function MapLibreCampusMap({
             }
             userLocation.current = { lat, lng }
             window.dispatchEvent(new CustomEvent('userLocationUpdate'))
+            // Real-world arrival: within 20 m of the navigation target
+            const t = navTargetRef.current
+            if (t?.latitude && t?.longitude && metersBetween({ lat, lng }, { lat: t.latitude, lng: t.longitude }) < 20) fireArrive()
+        })
+        // Only label/show nearby spots: limit minor pins + placards to ~200 m
+        // around the view centre, refreshed at most once per frame while moving.
+        let nearRaf = 0
+        const refreshNear = () => {
+            nearRaf = 0
+            const m = map.current
+            if (!m) return
+            const c = m.getCenter()
+            const ring = nearbyRing(c.lng, c.lat, NEAR_RADIUS_M)
+            const within = ['within', { type: 'Polygon', coordinates: [ring] }] as unknown as maplibregl.ExpressionSpecification
+            try {
+                if (m.getLayer('places-minor')) m.setFilter('places-minor', ['all', ['==', ['get', 'minor'], true], within] as maplibregl.FilterSpecification)
+                if (m.getLayer('jp-placards')) m.setFilter('jp-placards', ['all', ['!=', ['get', 'minor'], true], within] as maplibregl.FilterSpecification)
+            } catch { /* style swapping */ }
+        }
+        map.current.on('move', () => { if (!nearRaf) nearRaf = requestAnimationFrame(refreshNear) })
+        map.current.on('idle', () => { if (!nearRaf) nearRaf = requestAnimationFrame(refreshNear) })
+        map.current.on('moveend', () => {
+            if (!map.current) return
+            const c = map.current.getCenter()
+            onViewChangeRef.current?.({ lat: c.lat, lng: c.lng, zoom: map.current.getZoom() })
         })
         map.current.on('styleimagemissing', (e) => {
             const data = new Uint8Array(4)
@@ -497,43 +612,30 @@ export default function MapLibreCampusMap({
             // Lock minZoom to current zoom so user can't zoom out further
             const loadedZoom = map.current.getZoom()
             map.current.setMinZoom(loadedZoom)
-            setupCustomLayers(map.current, false)
+            setupCustomLayers(map.current, modeRef.current === 'satellite')
         })
         return () => { if (map.current) { map.current.remove(); map.current = null } }
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Satellite toggle
-    const toggleSatellite = useCallback(() => {
-        if (!map.current) return
-        const next = !isSatellite
-        setIsSatellite(next)
+    // View mode switch: Cursed / Normal / Satellite (full style reload each time)
+    const switchMode = useCallback((next: MapMode) => {
+        if (!map.current || next === modeRef.current) return
+        modeRef.current = next
+        setMapMode(next)
+        try { localStorage.setItem(MODE_KEY, next) } catch { /* private mode */ }
         layersAdded.current = false
         setMapLoaded(false)
         REGISTERED_IMAGES.clear()
         const currentMinZoom = map.current.getMinZoom()
-        if (next) {
-            map.current.setStyle({
-                version: 8,
-                glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
-                sources: { 'esri-satellite': { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, attribution: 'Tiles © Esri' } },
-                layers: [{ id: 'esri-satellite', type: 'raster', source: 'esri-satellite' }]
-            } as maplibregl.StyleSpecification)
-        } else {
-            map.current.setStyle('https://tiles.openfreemap.org/styles/liberty')
-        }
+        map.current.setStyle(styleFor(next), { diff: false })
         const afterStyle = () => {
             if (!map.current) return
             map.current.setMinZoom(currentMinZoom)
-            setupCustomLayers(map.current, next)
+            setupCustomLayers(map.current, next === 'satellite')
             // Re-draw route if we have cached data
             if (cachedRouteRef.current && map.current) {
                 const { coords } = cachedRouteRef.current
-                if (!map.current.getSource('route-main')) {
-                    map.current.addSource('route-main', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
-                    map.current.addSource('route-walk', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
-                    map.current.addLayer({ id: 'route-walk-line', type: 'line', source: 'route-walk', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#3b82f6', 'line-width': 2.5, 'line-dasharray': [0.1, 2.5], 'line-opacity': 0.8 } })
-                    map.current.addLayer({ id: 'route-main-line', type: 'line', source: 'route-main', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#4f46e5', 'line-width': 6, 'line-opacity': 0.8 } })
-                }
+                ensureRouteLayers(map.current);
                 (map.current.getSource('route-main') as maplibregl.GeoJSONSource).setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: coords.slice(1, -1) }, properties: {} });
                 (map.current.getSource('route-walk') as maplibregl.GeoJSONSource).setData({ type: 'FeatureCollection', features: [
                     { type: 'Feature', geometry: { type: 'LineString', coordinates: [coords[0], coords[1]] }, properties: {} },
@@ -545,7 +647,7 @@ export default function MapLibreCampusMap({
             if (map.current?.isStyleLoaded()) afterStyle()
             else map.current?.once('idle', afterStyle)
         })
-    }, [isSatellite, setupCustomLayers])
+    }, [setupCustomLayers])
 
     // Map click for pin-drop mode
     useEffect(() => {
@@ -585,24 +687,42 @@ export default function MapLibreCampusMap({
             const catKey = place.category?.id || 'default'
             ensurePinImage(m, `pin-${catKey}`, color, emoji, false)
             ensurePinImage(m, `pin-${catKey}-sel`, color, emoji, true)
+            ensurePinImage(m, `pin-${catKey}-seal`, color, emoji, false, true)
+            ensurePinImage(m, `pin-${catKey}-sel-seal`, color, emoji, true, true)
         }
 
+        const sealedSet = new Set(reclaimedIds)
+        const filtering = selectedCategoryIds.length > 0
+        // Several scraped spots share one Google pin; fan them out in a small
+        // ring (~6 m) so each stays tappable instead of stacking.
+        const stackCount = new Map<string, number>()
+        const stackSeen = new Map<string, number>()
+        for (const p of visible) { const k = `${p.latitude!.toFixed(5)},${p.longitude!.toFixed(5)}`; stackCount.set(k, (stackCount.get(k) || 0) + 1) }
         const geojson: GeoJSON.FeatureCollection = {
             type: 'FeatureCollection',
-            features: visible.map(p => ({
-                type: 'Feature',
-                geometry: { type: 'Point', coordinates: [p.longitude!, p.latitude!] },
+            features: visible.map(p => {
+                const k = `${p.latitude!.toFixed(5)},${p.longitude!.toFixed(5)}`
+                const n = stackCount.get(k) || 1, i = stackSeen.get(k) || 0
+                stackSeen.set(k, i + 1)
+                const a = (i / n) * Math.PI * 2, r = n > 1 ? 0.000055 : 0
+                const lng = p.longitude! + Math.cos(a) * r / Math.cos(p.latitude! * Math.PI / 180), lat = p.latitude! + Math.sin(a) * r
+                const minor = !filtering && p.id !== selectedPlace?.id && isMinorPlace(p)
+                return {
+                type: 'Feature' as const,
+                geometry: { type: 'Point' as const, coordinates: [lng, lat] },
                 properties: {
                     id: p.id,
                     name: p.name,
-                    iconId: p.id === selectedPlace?.id
-                        ? `pin-${p.category?.id || 'default'}-sel`
-                        : `pin-${p.category?.id || 'default'}`,
+                    minor,
+                    rank: MINOR_RANK[p.category?.categoryName?.toLowerCase() || ''] ?? 5,
+                    iconId: `pin-${p.category?.id || 'default'}${p.id === selectedPlace?.id ? '-sel' : ''}${sealedSet.has(p.id) ? '-seal' : ''}`,
+                    sealed: sealedSet.has(p.id),
+                    kanji: kanjiFor(p.category?.categoryName),
                 },
-            })),
+            }}),
         }
             ; (m.getSource('places-source') as maplibregl.GeoJSONSource).setData(geojson)
-    }, [places, selectedCategoryIds, mapLoaded, selectedPlace, getCategoryColor])
+    }, [places, selectedCategoryIds, mapLoaded, selectedPlace, getCategoryColor, reclaimedIds])
 
     // Fly to selected place
     useEffect(() => {
@@ -651,193 +771,48 @@ export default function MapLibreCampusMap({
         if (match?.latitude && match?.longitude) map.current.flyTo({ center: [match.longitude, match.latitude], zoom: 18, pitch: 60, duration: 1200 })
     }, [searchQuery, places])
 
-    // ── First-person physics walking ────────────────────────────────────────
-    // Calculate velocities in true meters per frame for physical accuracy
-    const WALK_ACCEL   = 0.005       // meters per frame^2
-    const WALK_MAX     = 0.04        // ~2.4 meters/sec
-    const WALK_FRICTION = 0.80
-    const ROT_SPEED    = 0.9         // degrees per frame
+    // First-person walking was replaced by the floating guide (src/components/jjk/CursedGuide.tsx).
 
-    const velRef    = useRef({ fwd: 0, side: 0, rot: 0 })
-    // offsetRef: distance in METERS from camera eye to map center along bearing
-    const offsetRef = useRef(0)
-
-    const moveCamera = useCallback(() => {
-        if (!map.current || !isFirstPerson || !eyeRef.current) return
-        const keys = keysPressed.current
-        const vel  = velRef.current
-        const m    = map.current
-        const offM = offsetRef.current
-        const eye  = eyeRef.current
-
-        // Restore W,A,S,D,Q,E fully
-        if (keys.has('w') || keys.has('arrowup'))    vel.fwd  = Math.min(vel.fwd  + WALK_ACCEL,  WALK_MAX)
-        if (keys.has('s') || keys.has('arrowdown'))  vel.fwd  = Math.max(vel.fwd  - WALK_ACCEL, -WALK_MAX)
-        if (keys.has('a'))                           vel.side = Math.max(vel.side - WALK_ACCEL, -WALK_MAX)
-        if (keys.has('d'))                           vel.side = Math.min(vel.side + WALK_ACCEL,  WALK_MAX)
-        if (keys.has('arrowleft')  || keys.has('q')) vel.rot  = Math.max(vel.rot  - ROT_SPEED,  -ROT_SPEED * 2)
-        if (keys.has('arrowright') || keys.has('e')) vel.rot  = Math.min(vel.rot  + ROT_SPEED,   ROT_SPEED * 2)
-
-        // Friction
-        vel.fwd  *= WALK_FRICTION
-        vel.side *= WALK_FRICTION
-        vel.rot  *= WALK_FRICTION
-
-        // Snap to zero
-        if (Math.abs(vel.fwd)  < 1e-4) vel.fwd  = 0
-        if (Math.abs(vel.side) < 1e-4) vel.side = 0
-        if (Math.abs(vel.rot)  < 0.01) vel.rot  = 0
-
-        if (vel.fwd === 0 && vel.side === 0 && vel.rot === 0) {
-            animationRef.current = requestAnimationFrame(moveCamera)
-            return
-        }
-
-        const newBearing    = m.getBearing() + vel.rot
-        const newBearingRad = (newBearing * Math.PI) / 180
-
-        // Conversion factors: meters -> degrees (adjusting Longitude for Latitude spherical pinch)
-        const latConv = 111111
-        const lngConv = 111111 * Math.cos(eye.lat * Math.PI / 180)
-
-        // Delta in meters
-        const dLatMeters = Math.cos(newBearingRad) * vel.fwd - Math.sin(newBearingRad) * vel.side
-        const dLngMeters = Math.sin(newBearingRad) * vel.fwd + Math.cos(newBearingRad) * vel.side
-
-        const nextLat = eye.lat + (dLatMeters / latConv)
-        const nextLng = eye.lng + (dLngMeters / lngConv)
-
-        if (isWithinCU(nextLat, nextLng)) {
-            eye.lat = nextLat
-            eye.lng = nextLng
-        } else {
-            // Hit campus boundary, stop walking momentum
-            vel.fwd = 0
-            vel.side = 0
-        }
-
-        // Center calculation: eye + offset (purely in meters, converted to degrees)
-        const centerLat = eye.lat + (Math.cos(newBearingRad) * offM) / latConv
-        const centerLng = eye.lng + (Math.sin(newBearingRad) * offM) / lngConv
-
-        m.jumpTo({
-            center: { lng: centerLng, lat: centerLat },
-            bearing: newBearing,
-        })
-
-        animationRef.current = requestAnimationFrame(moveCamera)
-    }, [isFirstPerson])
-
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
-            if (tag === 'input' || tag === 'textarea' || tag === 'select') return
-            const key = e.key.toLowerCase()
-            if (key === ' ' && !pinDropMode) { e.preventDefault(); setIsFirstPerson(prev => !prev); return }
-            if (['w', 'a', 's', 'd', 'q', 'e', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) { e.preventDefault(); keysPressed.current.add(key) }
-        }
-        const handleKeyUp = (e: KeyboardEvent) => { keysPressed.current.delete(e.key.toLowerCase()) }
-        window.addEventListener('keydown', handleKeyDown)
-        window.addEventListener('keyup', handleKeyUp)
-        return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp) }
-    }, [pinDropMode])
-
+    // Cursed-energy dashes stream along any drawn route; buildings bleed on a heartbeat
     useEffect(() => {
         const m = map.current
-        if (!m) return
-        if (isFirstPerson) {
-            velRef.current = { fwd: 0, side: 0, rot: 0 }
-            eyeRef.current = null
-            m.scrollZoom.disable()
-            m.dragPan.disable()   // disable default pan; we handle mouse ourselves
-            m.setMaxBounds(null)  // remove MapLibre's clamping so 1st-person center can go far ahead
-            m.easeTo({ pitch: 85, zoom: 19, duration: 800 })
+        if (!m || !mapLoaded) return
+        const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+        const stopFlow = startRouteFlow(m)
+        // Heartbeat only in Cursed view — Normal/Satellite keep true building colours
+        const stopPulse = mapMode === 'cursed' ? startCursedPulse(m, !!reduced) : () => {}
+        const stopPlanting = mapMode === 'cursed' ? startJapanProps(m) : () => {}
+        const stopFountain = mapMode === 'cursed' ? startFountain(m, !!reduced) : () => {}
+        return () => { stopFlow(); stopPulse(); stopPlanting(); stopFountain() }
+    }, [mapLoaded, mapMode])
 
-            // After easeTo settles: initialise eye + offset ONCE so every frame
-            // uses the same value (prevents float drift that causes orbit)
-            const t = setTimeout(() => {
-                if (!map.current) return
-                const c = map.current.getCenter()
-                const b = map.current.getBearing()
-                const bRad = (b * Math.PI) / 180
-                // ground distance (meters) from eye to focal center at pitch=85, zoom=19
-                const fovRad = (36.87 * Math.PI) / 180
-                const canvasH = map.current.getCanvas().clientHeight || 800
-                const focalPx = (canvasH / 2) / Math.tan(fovRad / 2)
-                const mPerPx = (2 * Math.PI * 6378137) / (512 * Math.pow(2, map.current.getZoom()))
-                const altM = focalPx * mPerPx
-                const distM = altM * Math.tan((map.current.getPitch() * Math.PI) / 180)
-                
-                offsetRef.current = distM
-
-                const latConv = 111111
-                const lngConv = 111111 * Math.cos(c.lat * Math.PI / 180)
-
-                eyeRef.current = {
-                    lng: c.lng - (Math.sin(bRad) * distM) / lngConv,
-                    lat: c.lat - (Math.cos(bRad) * distM) / latConv,
-                }
-                if (animationRef.current) cancelAnimationFrame(animationRef.current)
-                animationRef.current = requestAnimationFrame(moveCamera)
-            }, 850)
-
-            // Mouse drag = turn in place (change bearing, eye stays fixed)
-            let dragging = false
-            let lastX = 0
-            const canvas = m.getCanvas()
-            const onDown = (e: MouseEvent | TouchEvent) => {
-                dragging = true
-                lastX = 'touches' in e ? e.touches[0].clientX : e.clientX
-            }
-            const onMove = (e: MouseEvent | TouchEvent) => {
-                if (!dragging || !eyeRef.current || !map.current) return
-                const x = 'touches' in e ? e.touches[0].clientX : e.clientX
-                const dx = x - lastX
-                lastX = x
-                const newBearing = map.current.getBearing() + dx * 0.05 // reduced sensitivity
-                const newBearingRad = (newBearing * Math.PI) / 180
-                const offM = offsetRef.current
-                const eye = eyeRef.current
-                
-                const latConv = 111111
-                const lngConv = 111111 * Math.cos(eye.lat * Math.PI / 180)
-
-                map.current.jumpTo({
-                    bearing: newBearing,
-                    center: {
-                        lng: eye.lng + (Math.sin(newBearingRad) * offM) / lngConv,
-                        lat: eye.lat + (Math.cos(newBearingRad) * offM) / latConv,
-                    },
-                })
-            }
-            const onUp = () => { dragging = false }
-            canvas.addEventListener('mousedown', onDown)
-            canvas.addEventListener('mousemove', onMove as any)
-            canvas.addEventListener('mouseup', onUp)
-            canvas.addEventListener('touchstart', onDown as any, { passive: true })
-            canvas.addEventListener('touchmove', onMove as any, { passive: true })
-            canvas.addEventListener('touchend', onUp)
-
-            return () => {
-                clearTimeout(t)
-                if (animationRef.current) cancelAnimationFrame(animationRef.current)
-                canvas.removeEventListener('mousedown', onDown)
-                canvas.removeEventListener('mousemove', onMove as any)
-                canvas.removeEventListener('mouseup', onUp)
-                canvas.removeEventListener('touchstart', onDown as any)
-                canvas.removeEventListener('touchmove', onMove as any)
-                canvas.removeEventListener('touchend', onUp)
-            }
-        } else {
-            eyeRef.current = null
-            offsetRef.current = 0
-            if (animationRef.current) { cancelAnimationFrame(animationRef.current); animationRef.current = null }
-            m.easeTo({ pitch: 55, zoom: 16, duration: 800 })
-            m.scrollZoom.enable()
-            m.dragPan.enable()
-            m.setMaxBounds([[76.5670, 30.7620], [76.5840, 30.7775]]) // restore bounds
+    // Pulsing ring under the selected pin
+    useEffect(() => {
+        const m = map.current
+        if (!m || !mapLoaded || !m.getSource('selected-pulse')) return
+        const src = m.getSource('selected-pulse') as maplibregl.GeoJSONSource
+        if (!selectedPlace?.latitude || !selectedPlace?.longitude) {
+            src.setData({ type: 'FeatureCollection', features: [] })
+            return
         }
-    }, [isFirstPerson, moveCamera])
+        src.setData({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [selectedPlace.longitude, selectedPlace.latitude] } })
+        let raf = 0
+        const t0 = performance.now()
+        const tick = (now: number) => {
+            if (!mapAlive(m)) return // map removed: stop the loop
+            raf = requestAnimationFrame(tick)
+            // rAF timestamps can precede t0 on the first frame → clamp to [0, 1)
+            const p = Math.min(0.999, Math.max(0, ((now - t0) % 1400) / 1400))
+            try {
+                if (!m.getLayer('selected-pulse')) return
+                m.setPaintProperty('selected-pulse', 'circle-radius', 10 + p * 34)
+                m.setPaintProperty('selected-pulse', 'circle-stroke-opacity', 1 - p)
+                m.setPaintProperty('selected-pulse', 'circle-opacity', 0.25 * (1 - p))
+            } catch { /* style swapping */ }
+        }
+        raf = requestAnimationFrame(tick)
+        return () => cancelAnimationFrame(raf)
+    }, [selectedPlace, mapLoaded])
 
     const handleRemoveRoute = useCallback(() => {
         if (!map.current) return
@@ -852,8 +827,9 @@ export default function MapLibreCampusMap({
 
     const stopWalker = useCallback(() => {
         if (lineAnimRef.current) { cancelAnimationFrame(lineAnimRef.current); lineAnimRef.current = null }
-        // Turn off navigation tracking if active
-        if (geolocateControlRef.current && geolocateControlRef.current._watchState !== 'OFF') {
+        // Turn off navigation tracking if active (only once the control is on the map)
+        const gcState = geolocateControlRef.current?._watchState
+        if (geolocateControlRef.current && gcState && gcState !== 'OFF') {
             geolocateControlRef.current.trigger() // Togging trigger when ON turns it OFF
         }
         setNavStatus('idle')
@@ -871,14 +847,25 @@ export default function MapLibreCampusMap({
     }, [])
 
     const drawRoute = useCallback(async (endLat: number, endLng: number, animate = false) => {
-        if (!map.current || !userLocation.current) return
+        const start = navOriginRef.current ?? userLocation.current
+        if (!map.current || !start) return
         if (animate) setNavStatus('routing')
         try {
-            const start = userLocation.current
-            const res = await fetch(`https://router.project-osrm.org/route/v1/foot/${start.lng},${start.lat};${endLng},${endLat}?geometries=geojson`)
-            if (!res.ok) { if (animate) setNavStatus('error'); return }
-            const data = await res.json()
-            if (data.routes?.length > 0) {
+            // Public OSRM router; if it's unreachable (venue Wi-Fi), fall back to a
+            // direct cursed-energy line so navigation + the guide still work.
+            let data: { routes?: { geometry: { coordinates: [number, number][] }; distance: number; duration: number }[] } = {}
+            try {
+                const ctrl = new AbortController()
+                const timer = setTimeout(() => ctrl.abort(), 6000)
+                const res = await fetch(`https://router.project-osrm.org/route/v1/foot/${start.lng},${start.lat};${endLng},${endLat}?geometries=geojson`, { signal: ctrl.signal })
+                clearTimeout(timer)
+                if (res.ok) data = await res.json()
+            } catch { /* offline → fallback below */ }
+            if (!data.routes?.length) {
+                const d = metersBetween(start, { lat: endLat, lng: endLng })
+                data = { routes: [{ geometry: { coordinates: [[start.lng, start.lat], [endLng, endLat]] }, distance: d, duration: d / 1.3 }] }
+            }
+            if (data.routes && data.routes.length > 0) {
                 const route = data.routes[0].geometry
                 const routeDist = data.routes[0].distance
                 const routeTime = data.routes[0].duration
@@ -895,6 +882,7 @@ export default function MapLibreCampusMap({
                 ]
 
                 cachedRouteRef.current = { coords, dist: routeDist, time: routeTime }
+                if (navTargetRef.current) onRouteReadyRef.current?.(coords, navTargetRef.current)
 
                 if (animate) {
                     const lookAhead = Math.min(3, coords.length - 1);
@@ -911,16 +899,7 @@ export default function MapLibreCampusMap({
                     map.current.flyTo({ center: coords[0], zoom: 17, pitch: 50, duration: 800, essential: true })
                 }
 
-                if (!map.current.getSource('route-main')) {
-                    map.current.addSource('route-main', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
-                    map.current.addSource('route-walk', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
-
-                    map.current.addLayer({ id: 'route-walk-outline', type: 'line', source: 'route-walk', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 0, 'line-opacity': 0 } })
-                    map.current.addLayer({ id: 'route-walk-line', type: 'line', source: 'route-walk', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#3b82f6', 'line-width': 2.5, 'line-dasharray': [0.1, 2.5], 'line-opacity': 0.8 } })
-
-                    map.current.addLayer({ id: 'route-main-outline', type: 'line', source: 'route-main', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 8, 'line-opacity': 0.9 } })
-                    map.current.addLayer({ id: 'route-main-line', type: 'line', source: 'route-main', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#3b82f6', 'line-width': 5, 'line-opacity': 1 } })
-                }
+                ensureRouteLayers(map.current)
 
                 // 1. Animate line drawing
                 const totalPoints = coords.length
@@ -968,7 +947,9 @@ export default function MapLibreCampusMap({
 
                         // Trigger MapLibre's native GeolocateControl which perfectly 
                         // handles the blue dot, accuracy circle, and camera tracking!
-                        if (geolocateControlRef.current && geolocateControlRef.current._watchState === 'OFF') {
+                        // Skipped when the route starts from the guide/demo origin, otherwise
+                        // GPS camera-tracking would fight the guide for the camera.
+                        if (!navOriginRef.current && geolocateControlRef.current && geolocateControlRef.current._watchState === 'OFF') {
                             geolocateControlRef.current.trigger()
                         }
                     }
@@ -987,11 +968,19 @@ export default function MapLibreCampusMap({
     }, [selectedPlace, navigateToPlace, handleRemoveRoute, stopWalker])
 
     useEffect(() => {
+        navTargetRef.current = navigateToPlace ?? null
+        arrivedRef.current = false
         if (!navigateToPlace?.latitude || !navigateToPlace?.longitude) return
         setNavStatus('locating')
         const go = () => drawRoute(navigateToPlace.latitude!, navigateToPlace.longitude!, true)
-        if (userLocation.current) go()
-        else navigator.geolocation.getCurrentPosition(pos => {
+        if (navOriginRef.current || userLocation.current) { go(); return }
+        // No GPS fix (indoors / denied): start from the map centre if it's on campus, else Gate 2
+        const fallback = () => {
+            const c = map.current?.getCenter()
+            userLocation.current = c && isWithinCU(c.lat, c.lng) ? { lat: c.lat, lng: c.lng } : { ...GATE_2_COORDS }
+            go()
+        }
+        navigator.geolocation.getCurrentPosition(pos => {
             let lat = pos.coords.latitude;
             let lng = pos.coords.longitude;
             if (!isWithinCU(lat, lng)) {
@@ -1000,12 +989,24 @@ export default function MapLibreCampusMap({
             }
             userLocation.current = { lat, lng };
             go()
-        }, () => setNavStatus('error'), { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 })
+        }, fallback, { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 })
     }, [navigateToPlace, drawRoute])
 
     return (
         <div className="w-full h-full relative">
             <div ref={mapContainer} className="w-full h-full" />
+
+            {mapMode === 'cursed' && (
+                <div className="sakura-layer pointer-events-none absolute inset-0 z-[5] overflow-hidden" aria-hidden="true">
+                    {PETALS.map((p, i) => (
+                        <span key={i} className="sakura-petal" style={{
+                            left: `${p.x}%`, width: p.size, height: p.size * 0.7,
+                            animationDelay: `${p.delay}s`, animationDuration: `${p.dur}s`,
+                            ['--sway' as string]: `${p.sway}px`,
+                        } as React.CSSProperties} />
+                    ))}
+                </div>
+            )}
 
             {/* Draggable Navigation/Add-Place status overlay */}
             {(navStatus !== 'idle' || pinDropMode) && (
@@ -1021,17 +1022,18 @@ export default function MapLibreCampusMap({
                     onTouchStart={handleBarMouseDown}
                 >
                     {pinDropMode && navStatus === 'idle' && (
-                         <div className="bg-gray-900/95 text-white px-5 py-3 rounded-2xl shadow-2xl border border-indigo-500/40 flex items-center gap-4 min-w-[280px]">
-                             <div className="w-10 h-10 rounded-2xl bg-indigo-500 flex items-center justify-center animate-pulse flex-shrink-0 shadow-[0_0_15px_rgba(99,102,241,0.5)]">
+                         <div className="cn-glass px-5 py-3 flex items-center gap-4 min-w-[280px]" style={{ color: 'var(--cn-text-1)' }}>
+                             <div className="w-10 h-10 rounded-2xl flex items-center justify-center animate-pulse flex-shrink-0" style={{ background: 'var(--cn-accent-purple)', boxShadow: 'var(--cn-shadow-glow-purple)' }}>
                                  <span className="text-xl">📍</span>
                              </div>
                              <div className="flex-1">
-                                 <p className="font-bold text-sm text-white leading-tight">Adding New Place</p>
-                                 <p className="text-indigo-300/70 text-[11px] mt-0.5">Click anywhere on campus map</p>
+                                 <p className="font-bold text-sm leading-tight" style={{ color: 'var(--cn-text-1)' }}>Adding New Place</p>
+                                 <p className="text-[11px] mt-0.5" style={{ color: 'var(--cn-text-3)' }}>Click anywhere on campus map</p>
                              </div>
                              <button 
                                  onClick={(e) => { e.stopPropagation(); onCancelAdd?.(); }}
-                                 className="ml-2 bg-white/10 hover:bg-red-500/30 hover:text-red-300 text-white text-[11px] font-bold px-4 py-2 rounded-xl transition-all border border-white/5 hover:border-red-500/20"
+                                 className="ml-2 text-[11px] font-bold px-4 py-2 rounded-xl transition-all"
+                                 style={{ background: 'var(--cn-surface-2)', color: 'var(--cn-text-1)', border: '1px solid var(--cn-border)' }}
                              >
                                  Cancel
                              </button>
@@ -1039,35 +1041,35 @@ export default function MapLibreCampusMap({
                     )}
 
                     {navStatus !== 'idle' && (
-                        <div className="bg-gray-900/95 text-white px-4 py-3 rounded-[1.5rem] shadow-[0_15px_40px_rgba(0,0,0,0.4)] border border-white/10 flex items-center justify-between gap-4 min-w-[280px] backdrop-blur-md">
+                        <div className="cn-glass px-4 py-3 flex items-center justify-between gap-4 min-w-[280px]" style={{ color: 'var(--cn-text-1)' }}>
                             {/* Drag handle visual */}
                             <div className="absolute top-1 left-1/2 -translate-x-1/2 flex gap-1 opacity-20">
-                                <div className="w-1 h-0.5 bg-white rounded-full" />
-                                <div className="w-1 h-0.5 bg-white rounded-full" />
+                                <div className="w-1 h-0.5 rounded-full" style={{ background: 'var(--cn-text-1)' }} />
+                                <div className="w-1 h-0.5 rounded-full" style={{ background: 'var(--cn-text-1)' }} />
                             </div>
 
                             <div className="flex items-center gap-3">
                                 <div className="relative">
-                                    {navStatus === 'walking' && <div className="absolute -inset-1.5 bg-green-500/20 rounded-full animate-ping" />}
-                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg relative z-10">
+                                    {navStatus === 'walking' && <div className="absolute -inset-1.5 rounded-full animate-ping" style={{ background: 'rgba(56,189,248,0.2)' }} />}
+                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center relative z-10" style={{ background: 'var(--cn-accent-gojo)', boxShadow: 'var(--cn-shadow-glow-gojo)' }}>
                                         <span className="text-xl">🏁</span>
                                     </div>
                                 </div>
                                 
                                 <div className="flex flex-col">
                                     <div className="flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                                        <span className="text-[9px] font-black text-green-400 uppercase tracking-wider">
-                                            {navStatus === 'walking' ? 'Walking' : 'Routing'}
+                                        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--cn-accent-gojo)' }} />
+                                        <span className="text-[9px] font-black uppercase tracking-wider" style={{ color: 'var(--cn-accent-gojo)' }}>
+                                            {navStatus === 'walking' ? 'Traversing' : 'Tracing path'}
                                         </span>
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-xs font-bold text-white truncate max-w-[120px] tracking-tight">{navigateToPlace?.name || 'Goal'}</span>
+                                        <span className="text-xs font-bold truncate max-w-[120px] tracking-tight" style={{ color: 'var(--cn-text-1)' }}>{navigateToPlace?.name || 'Goal'}</span>
                                         {navStats && (
                                             <div className="flex items-center gap-1.5">
-                                                <span className="text-sm font-black text-white">{Math.max(1, Math.round(navStats.time / 60))}m</span>
-                                                <span className="w-0.5 h-0.5 bg-white/20 rounded-full" />
-                                                <span className="text-xs font-bold text-green-400/90">{Math.round(navStats.dist)}m</span>
+                                                <span className="text-sm font-black" style={{ color: 'var(--cn-text-1)' }}>{Math.max(1, Math.round(navStats.time / 60))}m</span>
+                                                <span className="w-0.5 h-0.5 rounded-full" style={{ background: 'var(--cn-border)' }} />
+                                                <span className="text-xs font-bold" style={{ color: 'var(--cn-accent-gojo)', opacity: 0.9 }}>{Math.round(navStats.dist)}m</span>
                                             </div>
                                         )}
                                     </div>
@@ -1077,11 +1079,22 @@ export default function MapLibreCampusMap({
                             <div className="flex items-center gap-1.5">
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); handleRecenter(); }}
-                                    className="bg-white/5 hover:bg-white/15 text-white/80 p-2 rounded-xl transition-all border border-white/5"
+                                    className="p-2 rounded-xl transition-all"
+                                    style={{ background: 'var(--cn-surface-2)', color: 'var(--cn-text-2)', border: '1px solid var(--cn-border)' }}
                                     title="Recenter"
                                 >
                                     🎯
                                 </button>
+                                {navStatus === 'walking' && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); fireArrive() }}
+                                        className="text-[10px] font-black px-3 py-2 rounded-xl transition-all"
+                                        style={{ background: 'rgba(0,213,255,0.15)', color: '#5ff5ff', border: '1px solid rgba(0,213,255,0.4)' }}
+                                        title="Mark as arrived (demo / no GPS)"
+                                    >
+                                        ARRIVED
+                                    </button>
+                                )}
                                 <button 
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -1090,7 +1103,8 @@ export default function MapLibreCampusMap({
                                         setNavStatus('idle');
                                         onCancelNavigation?.();
                                     }}
-                                    className="bg-red-500/20 hover:bg-red-500/40 text-red-400 text-[10px] font-black px-3 py-2 rounded-xl transition-all border border-red-500/20"
+                                    className="text-[10px] font-black px-3 py-2 rounded-xl transition-all"
+                                    style={{ background: 'rgba(220,38,38,0.2)', color: 'var(--cn-accent-sukuna)', border: '1px solid rgba(220,38,38,0.3)' }}
                                 >
                                     EXIT
                                 </button>
@@ -1099,11 +1113,11 @@ export default function MapLibreCampusMap({
                     )}
                     
                     {navStatus === 'error' && (
-                        <div className="bg-red-900/95 text-white px-5 py-3 rounded-2xl shadow-2xl border border-red-500/30 flex items-center gap-3">
+                        <div className="px-5 py-3 rounded-2xl flex items-center gap-3" style={{ background: 'rgba(127,29,29,0.95)', boxShadow: 'var(--cn-shadow-glass)', border: '1px solid rgba(220,38,38,0.3)', color: 'var(--cn-text-1)' }}>
                             <span className="text-xl">⚠️</span>
                             <div className="flex flex-col">
-                                <span className="text-[11px] font-bold text-red-300 uppercase">GPS Error</span>
-                                <span className="text-xs text-white/70">Please enable location access</span>
+                                <span className="text-[11px] font-bold uppercase" style={{ color: 'var(--cn-accent-sukuna)' }}>GPS Error</span>
+                                <span className="text-xs" style={{ color: 'var(--cn-text-2)' }}>Please enable location access</span>
                             </div>
                         </div>
                     )}
@@ -1113,29 +1127,43 @@ export default function MapLibreCampusMap({
             {/* Map Controls */}
             {!pinDropMode && (
                 <div className="absolute top-20 right-4 md:top-4 md:right-[4.5rem] z-10 flex flex-col md:flex-row gap-2">
-                    <div className="flex flex-col md:flex-row gap-2 bg-black/20 backdrop-blur-md p-1.5 rounded-[1.5rem] border border-white/10">
-                        <button onClick={toggleSatellite} className={`w-11 h-11 rounded-2xl shadow-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${isSatellite ? 'bg-indigo-500 text-white shadow-indigo-500/40' : 'bg-white/10 text-white hover:bg-white/20'}`} title="Toggle satellite view">
-                            {isSatellite ? <span>🗺️</span> : <span>🛰️</span>}
-                        </button>
-                        <button onClick={() => setIsFirstPerson(!isFirstPerson)} className={`w-11 h-11 rounded-2xl shadow-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${isFirstPerson ? 'bg-indigo-500 text-white shadow-indigo-500/40' : 'bg-white/10 text-white hover:bg-white/20'}`} title="Toggle First Person">
-                            {isFirstPerson ? <span>🦅</span> : <span>🚶</span>}
+                    <div className="cn-glass flex flex-col md:flex-row gap-2 p-1.5">
+                        <div data-tour="modes" role="radiogroup" aria-label="Map view" className="flex flex-col md:flex-row gap-1">
+                            {MODES.map(md => {
+                                const on = mapMode === md.id
+                                return (
+                                    <button
+                                        key={md.id}
+                                        role="radio"
+                                        aria-checked={on}
+                                        onClick={() => switchMode(md.id)}
+                                        className="w-11 h-11 rounded-2xl text-sm transition-all flex items-center justify-center"
+                                        style={on
+                                            ? { background: md.bg, color: '#fff', boxShadow: md.glow }
+                                            : { background: 'var(--cn-surface-2)', color: 'var(--cn-text-1)' }}
+                                        title={md.title}
+                                    >
+                                        <span className={md.id === 'cursed' ? 'jjk-font text-lg' : ''}>{md.icon}</span>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                        <button
+                            data-tour="guide"
+                            onClick={() => onToggleGuide?.()}
+                            className="w-11 h-11 rounded-2xl font-semibold text-sm transition-all flex items-center justify-center gap-2"
+                            style={guideActive
+                                ? { background: 'linear-gradient(135deg,#2563ff,#00d5ff)', color: '#fff', boxShadow: '0 0 16px rgba(0,213,255,0.7)' }
+                                : { background: 'var(--cn-surface-2)', color: 'var(--cn-text-1)' }}
+                            title={guideActive ? 'Dismiss guide (Space)' : 'Summon floating guide (Space)'}
+                            aria-pressed={guideActive}
+                        >
+                            <span>{guideActive ? '✕' : '🧿'}</span>
                         </button>
                     </div>
                 </div>
             )}
 
-            {isFirstPerson && (
-                <div className="hidden md:block absolute bottom-20 left-4 z-10 bg-gray-900/90 text-white rounded-2xl p-4 backdrop-blur-sm shadow-2xl border border-white/10">
-                    <p className="font-bold mb-3 text-sm text-indigo-300">🚶 Street View Controls</p>
-                    <div className="grid grid-cols-2 gap-x-5 gap-y-1.5 text-xs">
-                        <span className="font-mono bg-white/15 px-2 py-0.5 rounded text-center">W / ↑</span><span className="text-gray-300">Forward</span>
-                        <span className="font-mono bg-white/15 px-2 py-0.5 rounded text-center">S / ↓</span><span className="text-gray-300">Backward</span>
-                        <span className="font-mono bg-white/15 px-2 py-0.5 rounded text-center">A / D</span><span className="text-gray-300">Strafe</span>
-                        <span className="font-mono bg-white/15 px-2 py-0.5 rounded text-center">Q / E</span><span className="text-gray-300">Rotate</span>
-                        <span className="font-mono bg-white/15 px-2 py-0.5 rounded text-center">SPACE</span><span className="text-gray-300">Exit</span>
-                    </div>
-                </div>
-            )}
 
             {/* Map Styles including custom ping keyframe */}
             <style>{`

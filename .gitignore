@@ -43,3 +43,15 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# JJK reference repos (study material only, not part of the app)
+/references
+
+# Mappls import output
+/mappls-import.json
+/google-import.json
+/google-import-raw.json
+
+# Local archives
+/cutour360.zip
+/.vercel

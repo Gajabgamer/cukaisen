@@ -101,19 +101,29 @@ export default function ImageUpload({
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`
-          relative w-full aspect-video rounded-xl border-2 border-dashed
-          transition-all duration-200 cursor-pointer overflow-hidden
-          ${isDragging
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
-                    }
-        `}
+                className="relative w-full aspect-video rounded-xl border-2 border-dashed transition-all duration-200 cursor-pointer overflow-hidden"
+                style={{
+                    borderColor: isDragging ? 'var(--cn-accent-purple)' : 'var(--cn-border)',
+                    background: isDragging ? 'var(--cn-surface)' : 'var(--cn-surface-2)',
+                    boxShadow: isDragging ? 'var(--cn-shadow-glow-purple)' : 'none',
+                }}
+                onMouseEnter={(e) => {
+                    if (!isDragging) e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.45)'
+                }}
+                onMouseLeave={(e) => {
+                    if (!isDragging) e.currentTarget.style.borderColor = 'var(--cn-border)'
+                }}
             >
                 {isCompressing ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-10">
-                        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-2" />
-                        <p className="text-xs font-semibold text-indigo-600">Optimizing...</p>
+                    <div
+                        className="absolute inset-0 flex flex-col items-center justify-center backdrop-blur-sm z-10"
+                        style={{ background: 'rgba(10, 7, 19, 0.72)' }}
+                    >
+                        <div
+                            className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin mb-2"
+                            style={{ borderColor: 'var(--cn-accent-purple)', borderTopColor: 'transparent' }}
+                        />
+                        <p className="text-xs font-semibold" style={{ color: 'var(--cn-accent-purple)' }}>Optimizing...</p>
                     </div>
                 ) : null}
 
@@ -127,25 +137,31 @@ export default function ImageUpload({
                         />
                         <button
                             onClick={handleRemove}
-                            className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full
-                         flex items-center justify-center hover:bg-red-600 transition-colors
+                            className="absolute top-2 right-2 w-8 h-8 text-white rounded-full
+                         flex items-center justify-center transition-colors
                          shadow-lg"
+                            style={{ background: 'var(--cn-accent-sukuna)' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = '#b91c1c')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--cn-accent-sukuna)')}
                         >
                             ✕
                         </button>
                     </>
                 ) : (
                     <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-                        <div className="w-16 h-16 mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div
+                            className="w-16 h-16 mb-4 rounded-full flex items-center justify-center"
+                            style={{ background: 'var(--cn-surface-2)' }}
+                        >
+                            <svg className="w-8 h-8" style={{ color: 'var(--cn-text-3)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                         </div>
-                        <p className="text-sm text-gray-600 text-center">
-                            <span className="font-medium text-blue-600">Click to upload</span> or drag and drop
+                        <p className="text-sm text-center" style={{ color: 'var(--cn-text-2)' }}>
+                            <span className="font-medium" style={{ color: 'var(--cn-accent-purple)' }}>Click to upload</span> or drag and drop
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">Images are automatically optimized</p>
+                        <p className="text-xs mt-1" style={{ color: 'var(--cn-text-3)' }}>Images are automatically optimized</p>
                     </div>
                 )}
             </div>

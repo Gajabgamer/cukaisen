@@ -1,10 +1,12 @@
 
-
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import prisma from '@/lib/db'
 import Header from '@/components/Header'
+import { getCursedTerritoryName } from '@/lib/lore/cursedTerritory'
+import { pickMentorLine } from '@/lib/lore/mentorCopy'
+import CursedArtifactSlot from '@/components/shared/CursedArtifactSlot'
 
 export const dynamicParams = true
 
@@ -51,79 +53,87 @@ export default async function PlaceDetailPage({ params }: PageProps) {
         notFound()
     }
 
+    const arrivalLine = pickMentorLine('arrivalConfirmed', place.id)
+
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen" style={{ background: 'var(--cn-bg)' }}>
             <Header />
 
             <main className="pt-16">
-                {/* Hero Image */}
-                <div className="relative h-64 md:h-80 bg-gradient-to-br from-blue-100 to-indigo-100">
-                    {place.photos && place.photos.length > 0 ? (
-                        <Image
-                            src={place.photos[0].photoUrl}
-                            alt={place.name}
-                            fill
-                            className="object-cover"
-                        />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                            <span className="text-8xl">{place.category?.icon || '📍'}</span>
-                        </div>
-                    )}
+                {/* Hero Image — dossier photo slot */}
+                <div className="relative h-64 md:h-80">
+                    <CursedArtifactSlot
+                        src={place.photos?.[0]?.photoUrl}
+                        alt={place.name}
+                        variant="dossier"
+                        className="h-full w-full"
+                    />
 
                     {/* Back button */}
                     <Link
                         href="/map"
-                        className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors"
+                        className="cn-glass absolute top-4 left-4 w-10 h-10 flex items-center justify-center transition-colors"
+                        style={{ color: 'var(--cn-text-1)' }}
                     >
                         ←
                     </Link>
                 </div>
 
-                {/* Content */}
+                {/* Content — "sorcerer dossier" card */}
                 <div className="max-w-2xl mx-auto px-4 -mt-8 relative">
-                    <div className="bg-white rounded-2xl shadow-lg p-6">
+                    <div className="cn-glass p-6">
+                        {/* arrivalConfirmed Mentor_Copy line — shown once on open (Requirement 6.2) */}
+                        <p className="text-sm italic mb-4" style={{ color: 'var(--cn-accent-purple)' }} data-testid="arrival-confirmed-mentor-line">
+                            {arrivalLine}
+                        </p>
+
                         {/* Category Badge */}
                         {place.category && (
-                            <span className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
+                            <span
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-4"
+                                style={{ background: 'var(--cn-accent-purple-glow)', color: 'var(--cn-accent-purple)' }}
+                            >
                                 {place.category.icon} {place.category.categoryName}
+                                <span style={{ color: 'var(--cn-text-3)' }}>
+                                    · {getCursedTerritoryName(place.category.categoryName)}
+                                </span>
                             </span>
                         )}
 
                         {/* Title */}
-                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+                        <h1 className="cn-display text-2xl md:text-3xl font-bold mb-4" style={{ color: 'var(--cn-text-1)' }}>
                             {place.name}
                         </h1>
 
                         {/* Description */}
                         {place.description && (
-                            <p className="text-gray-600 mb-6 leading-relaxed">
+                            <p className="mb-6 leading-relaxed" style={{ color: 'var(--cn-text-2)' }}>
                                 {place.description}
                             </p>
                         )}
 
-                        {/* Location Details */}
-                        <div className="bg-gray-50 rounded-xl p-4 mb-6">
-                            <h2 className="font-semibold text-gray-900 mb-3">📍 Location</h2>
+                        {/* Location Details — stat-block metadata rows */}
+                        <div className="rounded-xl p-4 mb-6" style={{ background: 'var(--cn-surface-2)', border: '1px solid var(--cn-border)' }}>
+                            <h2 className="font-semibold mb-3" style={{ color: 'var(--cn-text-1)' }}>📍 Location</h2>
                             <div className="space-y-2 text-sm">
                                 {place.block?.campus && (
-                                    <p className="text-gray-600">
-                                        <span className="font-medium">Campus:</span> {place.block.campus.name}
+                                    <p style={{ color: 'var(--cn-text-2)' }}>
+                                        <span className="font-medium" style={{ color: 'var(--cn-text-1)' }}>Campus:</span> {place.block.campus.name}
                                     </p>
                                 )}
                                 {place.block && (
-                                    <p className="text-gray-600">
-                                        <span className="font-medium">Block:</span> {place.block.name}
+                                    <p style={{ color: 'var(--cn-text-2)' }}>
+                                        <span className="font-medium" style={{ color: 'var(--cn-text-1)' }}>Block:</span> {place.block.name}
                                     </p>
                                 )}
                                 {place.floor && (
-                                    <p className="text-gray-600">
-                                        <span className="font-medium">Floor:</span> {place.floor.floorNumber === 0 ? 'Ground Floor' : `Floor ${place.floor.floorNumber}`}
+                                    <p style={{ color: 'var(--cn-text-2)' }}>
+                                        <span className="font-medium" style={{ color: 'var(--cn-text-1)' }}>Floor:</span> {place.floor.floorNumber === 0 ? 'Ground Floor' : `Floor ${place.floor.floorNumber}`}
                                     </p>
                                 )}
                                 {place.room && (
-                                    <p className="text-gray-600">
-                                        <span className="font-medium">Room:</span> {place.room.roomNumber}
+                                    <p style={{ color: 'var(--cn-text-2)' }}>
+                                        <span className="font-medium" style={{ color: 'var(--cn-text-1)' }}>Room:</span> {place.room.roomNumber}
                                     </p>
                                 )}
                             </div>
@@ -132,13 +142,14 @@ export default async function PlaceDetailPage({ params }: PageProps) {
                         {/* Map Preview */}
                         {place.latitude && place.longitude && (
                             <div className="mb-6">
-                                <h2 className="font-semibold text-gray-900 mb-3">🗺️ On Map</h2>
-                                <div className="bg-gray-200 rounded-xl h-48 flex items-center justify-center">
+                                <h2 className="font-semibold mb-3" style={{ color: 'var(--cn-text-1)' }}>🗺️ On Map</h2>
+                                <div className="rounded-xl h-48 flex items-center justify-center" style={{ background: 'var(--cn-surface-2)' }}>
                                     <a
                                         href={`https://www.google.com/maps?q=${place.latitude},${place.longitude}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
+                                        className="px-6 py-3 rounded-xl font-medium transition-colors"
+                                        style={{ background: 'var(--cn-accent-purple)', color: '#fff', boxShadow: 'var(--cn-shadow-glow-purple)' }}
                                     >
                                         Open in Google Maps
                                     </a>
@@ -149,7 +160,7 @@ export default async function PlaceDetailPage({ params }: PageProps) {
                         {/* Photo Gallery */}
                         {place.photos && place.photos.length > 1 && (
                             <div className="mb-6">
-                                <h2 className="font-semibold text-gray-900 mb-3">📷 Photos</h2>
+                                <h2 className="font-semibold mb-3" style={{ color: 'var(--cn-text-1)' }}>📷 Photos</h2>
                                 <div className="grid grid-cols-3 gap-2">
                                     {place.photos.map((photo: { photoUrl: string }, index: number) => (
                                         <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
@@ -166,7 +177,7 @@ export default async function PlaceDetailPage({ params }: PageProps) {
                         )}
 
                         {/* Added by */}
-                        <div className="text-sm text-gray-400 border-t pt-4">
+                        <div className="text-sm pt-4" style={{ color: 'var(--cn-text-3)', borderTop: '1px solid var(--cn-border-soft)' }}>
                             Added by {place.createdBy.name}
                         </div>
                     </div>

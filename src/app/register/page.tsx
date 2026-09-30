@@ -4,6 +4,8 @@ import { useState, FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { authClient } from '@/lib/auth-client'
+import { pickMentorLine } from '@/lib/lore/mentorCopy'
+import AuthShell from '@/components/jjk/AuthShell'
 
 function Spinner() {
     return (
@@ -34,13 +36,17 @@ function Field({ label, onTogglePassword, showPassword, ...props }: { label: str
             <div className="relative">
                 <input
                     {...props}
-                    className="w-full px-4 py-3.5 rounded-2xl border border-white/10 bg-white/5 text-white placeholder-white/25 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60 outline-none text-sm transition-all"
+                    className="w-full px-4 py-3.5 rounded-2xl outline-none text-sm transition-all"
+                    style={{ border: '1px solid var(--cn-border)', background: 'var(--cn-surface-2)', color: 'var(--cn-text-1)' }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--neon-red)'; e.currentTarget.style.boxShadow = '0 0 14px rgba(255,31,75,0.45)' }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--cn-border)'; e.currentTarget.style.boxShadow = 'none' }}
                 />
                 {onTogglePassword && (
                     <button
                         type="button"
                         onClick={onTogglePassword}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60 transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors"
+                        style={{ color: 'var(--cn-text-3)' }}
                     >
                         {showPassword ? (
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,41 +119,31 @@ export default function RegisterPage() {
     }
 
     return (
-        <div
-            className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-            style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)' }}
+        <AuthShell
+            character="/jjk/chars/yuji_large.webp"
+            aura="aura-red"
+            kanji="入学"
+            title="ENROLL"
+            subtitle="NEW FIRST-YEAR // GRADE 4 SORCERER"
+            quote="Grade 4, huh? Don't worry. I lost my technique and I'm still standing. You'll manage a campus map."
         >
-            <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full pointer-events-none"
-                style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.15), transparent)' }} />
-            <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full pointer-events-none"
-                style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15), transparent)' }} />
 
-            <div className="w-full max-w-md relative z-10">
-                <div className="text-center mb-8">
-                    <Link href="/map" className="inline-block transition-transform hover:scale-105 active:scale-95">
-                        <img src="/logo.png" alt="De-tect"
-                            className="w-16 h-16 rounded-2xl mx-auto mb-4 object-cover bg-white"
-                            style={{ boxShadow: '0 8px 32px rgba(99,102,241,0.4)' }} />
-                    </Link>
-                    <h1 className="text-3xl font-bold text-white tracking-tight">De-tect</h1>
-                    <p className="text-white/40 mt-1 text-sm">Join the campus community</p>
-                </div>
-
-                <div className="rounded-3xl p-8"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', backdropFilter: 'blur(24px)' }}>
+                    <p className="mb-5 text-sm italic" style={{ color: 'var(--cn-text-3)' }} data-testid="auth-register-mentor-line">
+                        {pickMentorLine('authRegister')}
+                    </p>
 
                     {error && (
-                        <div className="mb-5 flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-2xl p-4 text-red-300 text-sm">
+                        <div className="mb-5 flex items-start gap-2.5 rounded-2xl p-4 text-sm" style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.25)', color: 'var(--cn-accent-sukuna)' }}>
                             <span className="mt-0.5">⚠️</span> {error}
                         </div>
                     )}
                     {info && (
-                        <div className="mb-5 flex items-start gap-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-4 text-indigo-300 text-sm">
+                        <div className="mb-5 flex items-start gap-2.5 rounded-2xl p-4 text-sm" style={{ background: 'var(--cn-accent-purple-glow)', border: '1px solid var(--cn-accent-purple)', color: 'var(--cn-text-1)' }}>
                             <span className="mt-0.5">📧</span> {info}
                         </div>
                     )}
 
-                    <h2 className="text-xl font-bold text-white mb-6">Create your account</h2>
+                    <h2 className="jjk-font mb-6 text-2xl tracking-widest text-white">CREATE SORCERER ID</h2>
 
                     <form onSubmit={handleRegister} className="space-y-4">
                         <Field label="Full Name" type="text" value={name} onChange={e => setName(e.target.value)} required placeholder="Your full name" autoComplete="name" />
@@ -158,10 +154,9 @@ export default function RegisterPage() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full py-3.5 text-white font-bold rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm mt-2 flex items-center justify-center gap-2"
-                            style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 8px 24px rgba(99,102,241,0.4)' }}
+                            className="neon-btn neon-btn-red mt-2 w-full justify-center disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                            {isLoading ? <><Spinner /> Creating account...</> : 'Create Account →'}
+                            {isLoading ? <><Spinner /> Binding vow...</> : '⚔ Create Account'}
                         </button>
                     </form>
 
@@ -187,13 +182,9 @@ export default function RegisterPage() {
                     <div className="mt-6 text-center">
                         <p className="text-white/40 text-sm">
                             Already have an account?{' '}
-                            <Link href="/login" className="text-indigo-400 font-semibold hover:text-indigo-300 transition-colors">Sign in</Link>
+                            <Link href="/login" className="font-semibold text-cyan-300 transition-colors hover:text-cyan-200">Sign in</Link>
                         </p>
                     </div>
-                </div>
-
-                <p className="text-center text-white/20 text-xs mt-5">Chandigarh University · Campus Navigation</p>
-            </div>
-        </div>
+        </AuthShell>
     )
 }

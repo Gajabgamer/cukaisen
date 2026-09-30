@@ -104,10 +104,10 @@ export default function MapView({
 
     if (!mounted) {
         return (
-            <div className="w-full h-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
+            <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--cn-bg)' }}>
                 <div className="text-center">
-                    <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                    <p className="text-blue-600 font-medium">Loading Campus Map...</p>
+                    <div className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-3" style={{ borderColor: 'var(--cn-accent-purple)', borderTopColor: 'transparent' }}></div>
+                    <p className="font-medium" style={{ color: 'var(--cn-accent-purple)' }}>Loading Campus Map...</p>
                 </div>
             </div>
         )
@@ -123,26 +123,27 @@ export default function MapView({
         .marker-pin {
           width: 40px;
           height: 40px;
-          background: white;
+          background: var(--cn-surface);
           border-radius: 50% 50% 50% 0;
           transform: rotate(-45deg);
-          box-shadow: 0 3px 12px rgba(0,0,0,0.25);
+          box-shadow: var(--cn-shadow-glow-purple);
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 20px;
-          border: 2px solid #3b82f6;
+          border: 2px solid var(--cn-accent-purple);
         }
         .marker-pin > * {
           transform: rotate(45deg);
         }
         .leaflet-container {
-          background: #e8f4f8;
+          background: var(--cn-bg);
           font-family: inherit;
         }
         .leaflet-popup-content-wrapper {
           border-radius: 16px;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+          background: var(--cn-surface);
+          box-shadow: var(--cn-shadow-glass);
           padding: 0;
           overflow: hidden;
         }
@@ -178,17 +179,17 @@ export default function MapView({
                 <Polygon
                     positions={[OUTER_MASK, CAMPUS_BOUNDARY]}
                     pathOptions={{
-                        fillColor: '#f0f4f8',
+                        fillColor: '#0a0713',
                         fillOpacity: 0.85,
                         stroke: false
                     }}
                 />
 
-                {/* Campus boundary highlight */}
+                {/* Campus boundary highlight — cursed-purple accent */}
                 <Polygon
                     positions={CAMPUS_BOUNDARY}
                     pathOptions={{
-                        color: '#3b82f6',
+                        color: '#8b5cf6',
                         weight: 3,
                         fillColor: 'transparent',
                         fillOpacity: 0,
@@ -207,22 +208,23 @@ export default function MapView({
                         }}
                     >
                         <Popup>
-                            <div className="min-w-[200px]">
+                            <div className="min-w-[200px]" style={{ background: 'var(--cn-surface)', color: 'var(--cn-text-1)' }}>
                                 <div className="p-4">
                                     <div className="flex items-center gap-2 mb-2">
                                         <span className="text-2xl">{place.category?.icon || '📍'}</span>
-                                        <h3 className="font-bold text-gray-900">{place.name}</h3>
+                                        <h3 className="font-bold" style={{ color: 'var(--cn-text-1)' }}>{place.name}</h3>
                                     </div>
                                     {place.description && (
-                                        <p className="text-sm text-gray-600 mb-3">{place.description}</p>
+                                        <p className="text-sm mb-3" style={{ color: 'var(--cn-text-2)' }}>{place.description}</p>
                                     )}
-                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                    <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'var(--cn-accent-purple-glow)', color: 'var(--cn-accent-purple)' }}>
                                         {place.category?.categoryName}
                                     </span>
                                 </div>
                                 <button
                                     onClick={() => onPlaceClick?.(place)}
-                                    className="w-full py-3 bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors"
+                                    className="w-full py-3 font-medium transition-colors"
+                                    style={{ background: 'var(--cn-accent-purple)', color: '#fff' }}
                                 >
                                     View Details
                                 </button>
@@ -239,7 +241,8 @@ export default function MapView({
                         const map = document.querySelector('.leaflet-container') as any
                         map?._leaflet_map?.zoomIn()
                     }}
-                    className="w-11 h-11 bg-white rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-gray-50 text-xl font-light border border-gray-200"
+                    className="cn-glass w-11 h-11 flex items-center justify-center text-xl font-light"
+                    style={{ color: 'var(--cn-text-1)' }}
                 >
                     +
                 </button>
@@ -248,7 +251,8 @@ export default function MapView({
                         const map = document.querySelector('.leaflet-container') as any
                         map?._leaflet_map?.zoomOut()
                     }}
-                    className="w-11 h-11 bg-white rounded-xl shadow-lg flex items-center justify-center text-gray-700 hover:bg-gray-50 text-xl font-light border border-gray-200"
+                    className="cn-glass w-11 h-11 flex items-center justify-center text-xl font-light"
+                    style={{ color: 'var(--cn-text-1)' }}
                 >
                     −
                 </button>
@@ -256,10 +260,10 @@ export default function MapView({
 
             {/* Campus label */}
             <div className="absolute top-4 left-4 z-[1000]">
-                <div className="bg-white/95 backdrop-blur-sm px-4 py-2.5 rounded-2xl shadow-lg border border-gray-100">
+                <div className="cn-glass px-4 py-2.5">
                     <div className="flex items-center gap-2">
                         <span className="text-xl">🎓</span>
-                        <span className="font-semibold text-gray-800">Chandigarh University</span>
+                        <span className="font-semibold" style={{ color: 'var(--cn-text-1)' }}>Chandigarh University</span>
                     </div>
                 </div>
             </div>

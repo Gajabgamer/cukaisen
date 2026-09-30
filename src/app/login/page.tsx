@@ -4,6 +4,8 @@ import { useState, FormEvent, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { authClient } from '@/lib/auth-client'
+import { pickMentorLine } from '@/lib/lore/mentorCopy'
+import AuthShell from '@/components/jjk/AuthShell'
 
 function GoogleIcon() {
     return (
@@ -34,13 +36,17 @@ function Field({ label, onTogglePassword, showPassword, ...props }: { label: str
             <div className="relative">
                 <input
                     {...props}
-                    className="w-full px-4 py-3.5 rounded-2xl border border-white/10 bg-white/5 text-white placeholder-white/25 focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60 outline-none text-sm transition-all"
+                    className="w-full px-4 py-3.5 rounded-2xl outline-none text-sm transition-all"
+                    style={{ border: '1px solid var(--cn-border)', background: 'var(--cn-surface-2)', color: 'var(--cn-text-1)' }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--neon-cyan)'; e.currentTarget.style.boxShadow = '0 0 14px rgba(0,240,255,0.45)' }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--cn-border)'; e.currentTarget.style.boxShadow = 'none' }}
                 />
                 {onTogglePassword && (
                     <button
                         type="button"
                         onClick={onTogglePassword}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60 transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors"
+                        style={{ color: 'var(--cn-text-3)' }}
                     >
                         {showPassword ? (
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,31 +139,21 @@ function LoginForm() {
     }
 
     return (
-        <div
-            className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-            style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)' }}
+        <AuthShell
+            character="/jjk/chars/gojo_large.webp"
+            aura="aura-blue"
+            kanji="呪術高専"
+            title="ENTER THE VEIL"
+            subtitle="SORCERER LOGIN // GRADE CHECK"
+            quote="Throughout heaven and earth, I alone know where the seminar hall is. Log in and I'll share."
         >
-            <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full pointer-events-none"
-                style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15), transparent)' }} />
-            <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full pointer-events-none"
-                style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.15), transparent)' }} />
 
-            <div className="w-full max-w-md relative z-10">
-                <div className="text-center mb-8">
-                    <Link href="/map" className="inline-block transition-transform hover:scale-105 active:scale-95">
-                        <img src="/logo.png" alt="De-tect"
-                            className="w-16 h-16 rounded-2xl mx-auto mb-4 object-cover bg-white"
-                            style={{ boxShadow: '0 8px 32px rgba(99,102,241,0.4)' }} />
-                    </Link>
-                    <h1 className="text-3xl font-bold text-white tracking-tight">De-tect</h1>
-                    <p className="text-white/40 mt-1 text-sm">Chandigarh University · Smart Map</p>
-                </div>
-
-                <div className="rounded-3xl p-8"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', backdropFilter: 'blur(24px)' }}>
+                    <p className="mb-5 text-sm italic" style={{ color: 'var(--cn-text-3)' }} data-testid="auth-login-mentor-line">
+                        {pickMentorLine('authLogin')}
+                    </p>
 
                     {error && (
-                        <div className="mb-5 flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-2xl p-4 text-red-300 text-sm">
+                        <div className="mb-5 flex items-start gap-2.5 rounded-2xl p-4 text-sm" style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.25)', color: 'var(--cn-accent-sukuna)' }}>
                             <span className="mt-0.5 text-base">⚠️</span>
                             <div className="flex-1">
                                 {error}
@@ -165,7 +161,8 @@ function LoginForm() {
                                     <button 
                                         onClick={handleResendLink}
                                         type="button"
-                                        className="block mt-2 text-indigo-400 font-bold hover:underline"
+                                        className="block mt-2 font-bold hover:underline"
+                                        style={{ color: 'var(--cn-accent-purple)' }}
                                     >
                                         Resend verification link?
                                     </button>
@@ -175,12 +172,12 @@ function LoginForm() {
                     )}
 
                     {info && (
-                        <div className="mb-5 flex items-start gap-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-4 text-indigo-300 text-sm">
+                        <div className="mb-5 flex items-start gap-2.5 rounded-2xl p-4 text-sm" style={{ background: 'var(--cn-accent-purple-glow)', border: '1px solid var(--cn-accent-purple)', color: 'var(--cn-text-1)' }}>
                             <span className="mt-0.5 text-base">📧</span> {info}
                         </div>
                     )}
 
-                    <h2 className="text-xl font-bold text-white mb-6">Sign in to your account</h2>
+                    <h2 className="jjk-font mb-6 text-2xl tracking-widest text-white">SIGN IN</h2>
 
                     <form onSubmit={handleEmailLogin} className="space-y-4">
                         <Field
@@ -209,7 +206,7 @@ function LoginForm() {
                                 type="button" 
                                 onClick={handleResendLink}
                                 disabled={isResending}
-                                className="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors disabled:opacity-50"
+                                className="text-xs font-medium text-cyan-300 hover:text-cyan-200 transition-colors disabled:opacity-50"
                             >
                                 {isResending ? 'Sending...' : 'Lost verification email? Resend'}
                             </button>
@@ -218,10 +215,9 @@ function LoginForm() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full py-3.5 text-white font-bold rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm mt-2 flex items-center justify-center gap-2"
-                            style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 8px 24px rgba(99,102,241,0.4)' }}
+                            className="neon-btn mt-2 w-full justify-center disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                            {isLoading ? <><Spinner /> Signing in...</> : 'Sign In →'}
+                            {isLoading ? <><Spinner /> Breaking the barrier...</> : '⚡ Sign In'}
                         </button>
                     </form>
 
@@ -248,18 +244,12 @@ function LoginForm() {
                     <div className="mt-6 text-center">
                         <p className="text-white/40 text-sm">
                             No account?{' '}
-                            <Link href="/register" className="text-indigo-400 font-semibold hover:text-indigo-300 transition-colors">
-                                Create one free
+                            <Link href="/register" className="font-semibold text-red-400 transition-colors hover:text-red-300">
+                                Enroll at Jujutsu High
                             </Link>
                         </p>
                     </div>
-                </div>
-
-                <p className="text-center text-white/20 text-xs mt-5">
-                    Chandigarh University Campus Navigation System
-                </p>
-            </div>
-        </div>
+        </AuthShell>
     )
 }
 
